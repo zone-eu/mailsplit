@@ -1,0 +1,25 @@
+Subject: Example Email
+From: Test <test@email312.net>
+To: example@gmail.com
+MIME-Version: 1.0
+Date: Mon, 31 Mar 2025 09:09:56 +0000
+Content-Type: multipart/alternative; boundary=t5wkULPt
+
+--t5wkULPt
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+=C2=A0
+
+=
+
+--t5wkULPt
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<html>
+<head>
+<body>
+</body>
+</html>
+--t5wkULPt--
