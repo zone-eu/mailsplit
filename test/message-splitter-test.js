@@ -4,6 +4,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const MessageSplitter = require('../lib/message-splitter');
 const MessageJoiner = require('../lib/message-joiner');
+const { Readable, Transform } = require('stream');
 
 module.exports['Split simple message'] = test => {
     let splitter = new MessageSplitter();
@@ -448,6 +449,67 @@ module.exports['Split multipart message with embedded inline message/rfc88'] = t
                 '--ABC--'
         )
     );
+};
+
+module.exports['handles line break lines split into 2-byte chunks'] = test => {
+    const message = fs.readFileSync(__dirname + '/fixtures/original.txt');
+
+    const MAX_HEAD_SIZE = 2 * 1024 * 1024;
+    const splitter = new MessageSplitter({
+        ignoreEmbedded: true,
+        maxHeadSize: MAX_HEAD_SIZE
+    });
+
+    splitter.on('data', data => {
+        switch (data.type) {
+            case 'node':
+                // node header block
+                break;
+            case 'data':
+                // multipart message structure
+                // this is not related to any specific 'node' block as it includes
+                // everything between the end of some node body and between the next header
+                console.log(JSON.stringify(data.value.toString()));
+                break;
+            case 'body':
+                // Leaf element body. Includes the body for the last 'node' block. You might
+                // have several 'body' calls for a single 'node' block
+                console.log(JSON.stringify(data.value.toString()));
+                // console.log(data.value.toString());
+                break;
+        }
+    });
+
+    // Create a Transform stream that processes at most 2 bytes at a time
+    class TwoByteChunker extends Transform {
+        constructor(options) {
+            super(options);
+        }
+
+        _transform(chunk, encoding, callback) {
+            // Process the chunk in 2-byte segments
+            for (let i = 0; i < chunk.length; i += 2) {
+                const twoByteChunk = chunk.slice(i, i + 2);
+                // Push each 2-byte chunk to the output
+                this.push(twoByteChunk);
+                // console.log(`Processing chunk: ${JSON.stringify(twoByteChunk.toString())}`);
+            }
+            callback();
+        }
+    }
+
+    // Create a source stream with some test data
+    const source = Readable.from(message);
+
+    console.log(JSON.stringify(message.toString())); // Log raw message string for reference
+
+    // Pipe through our chunker
+    const chunker = new TwoByteChunker();
+
+    source.pipe(chunker).pipe(splitter);
+
+    test.expect(0);
+    test.done();
 };
 
 module.exports['Split multipart message with embedded message/rfc822 with header only'] = test => {
