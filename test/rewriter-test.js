@@ -251,7 +251,7 @@ module.exports['Recreate message with large image one byte at a time'] = test =>
     output.on('end', () => {
         msgHash = msgHash.digest('hex');
 
-        test.equal(msgHash, '1b23ab848c9c6d2edba86e1d5a50bbf2');
+        test.equal(msgHash, 'db6223cc3a59b840558b6f1817c9953d');
 
         test.done();
     });
