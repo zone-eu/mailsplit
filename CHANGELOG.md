@@ -1,5 +1,14 @@
 # Changelog
 
+## [5.4.4](https://github.com/zone-eu/mailsplit/compare/v5.4.3...v5.4.4) (2025-06-26)
+
+
+### Bug Fixes
+
+* Bumped deps ([ed5a731](https://github.com/zone-eu/mailsplit/commit/ed5a73193c8bb69ee3a86bb85c4b7b8122a5c4f2))
+* **message-splitter:** ZMS-217 Fix message-splitter trailing line breaks being incorrectly broken into separate lines ([#31](https://github.com/zone-eu/mailsplit/issues/31)) ([16eb658](https://github.com/zone-eu/mailsplit/commit/16eb6588419969ac3835cc4ae856e745cc97d2b7))
+* ZMS-217 test message-splitter if fed 2 byte chunks of message data ([#28](https://github.com/zone-eu/mailsplit/issues/28)) ([ab22adb](https://github.com/zone-eu/mailsplit/commit/ab22adb988de2882de02a76e5be331daada532f1))
+
 ## [5.4.3](https://github.com/zone-eu/mailsplit/compare/v5.4.2...v5.4.3) (2025-02-28)
 
 
