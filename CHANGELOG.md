@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.5](https://github.com/zone-eu/mailsplit/compare/v5.4.4...v5.4.5) (2025-06-29)
+
+
+### Bug Fixes
+
+* Bumped deps to trigger release flow (reverted ZMS-217) ([51fa651](https://github.com/zone-eu/mailsplit/commit/51fa6510e86b04c21700a1c214a4ba7e1885b001))
+
 ## [5.4.4](https://github.com/zone-eu/mailsplit/compare/v5.4.3...v5.4.4) (2025-06-26)
 
 
