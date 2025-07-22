@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.6](https://github.com/zone-eu/mailsplit/compare/v5.4.5...v5.4.6) (2025-07-22)
+
+
+### Bug Fixes
+
+* **chunkedpassthrough:** ZMS-248 Add ChunkedPassthrough to collect buffer before passing to next stream ([#34](https://github.com/zone-eu/mailsplit/issues/34)) ([b4606d0](https://github.com/zone-eu/mailsplit/commit/b4606d05003c253e6eaf5ebdce6df8f1179ffe88))
+
 ## [5.4.5](https://github.com/zone-eu/mailsplit/compare/v5.4.4...v5.4.5) (2025-06-29)
 
 
