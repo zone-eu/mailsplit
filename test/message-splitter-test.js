@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const MessageSplitter = require('../lib/message-splitter');
 const MessageJoiner = require('../lib/message-joiner');
 const { Readable, Transform } = require('stream');
+const ChunkedPassthrough = require('../lib/chunked-passthrough');
 
 module.exports['Split simple message'] = test => {
     let splitter = new MessageSplitter();
@@ -506,7 +507,7 @@ module.exports['handles line break lines split into 2-byte chunks'] = test => {
     // Pipe through our chunker
     const chunker = new TwoByteChunker();
 
-    source.pipe(chunker).pipe(splitter);
+    source.pipe(chunker).pipe(new ChunkedPassthrough()).pipe(splitter);
 
     test.expect(0);
     test.done();
