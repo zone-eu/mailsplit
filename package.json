@@ -1,5 +1,5 @@
 {
-    "name": "mailsplit",
+    "name": "@zone-eu/mailsplit",
     "version": "5.4.6",
     "description": "Split email messages into an object stream",
     "main": "index.js",
