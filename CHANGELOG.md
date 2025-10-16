@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.7](https://github.com/zone-eu/mailsplit/compare/v5.4.6...v5.4.7) (2025-10-16)
+
+
+### Bug Fixes
+
+* scope package, update release workflow ([#36](https://github.com/zone-eu/mailsplit/issues/36)) ([c5cff6e](https://github.com/zone-eu/mailsplit/commit/c5cff6ec32c3bf6214bda82da2f4458524dca1c0))
+
 ## [5.4.6](https://github.com/zone-eu/mailsplit/compare/v5.4.5...v5.4.6) (2025-07-22)
 
 
