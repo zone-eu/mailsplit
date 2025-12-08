@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.4.8](https://github.com/zone-eu/mailsplit/compare/v5.4.7...v5.4.8) (2025-12-08)
+
+
+### Bug Fixes
+
+* Bump js-yaml from 3.14.1 to 3.14.2 ([#40](https://github.com/zone-eu/mailsplit/issues/40)) ([3646711](https://github.com/zone-eu/mailsplit/commit/3646711edda6709f2f4f3ba9bfe56656be65da8a))
+* **workflows:** ZMSA-46: update workflows ([#41](https://github.com/zone-eu/mailsplit/issues/41)) ([1c95d43](https://github.com/zone-eu/mailsplit/commit/1c95d43a892f1079491a529e47098f84e03478bc))
+
 ## [5.4.7](https://github.com/zone-eu/mailsplit/compare/v5.4.6...v5.4.7) (2025-10-16)
 
 
