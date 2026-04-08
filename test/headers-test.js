@@ -130,3 +130,47 @@ module.exports['Replace header at relative key index'] = test => {
     test.equal(headers.build().toString(), generatedHeaderStr);
     test.done();
 };
+
+module.exports['Preserve SMTPUTF8 mailbox local part'] = test => {
+    let value = 'öäöä@wildduck.xn--4caaa.test';
+    let headers = new Headers();
+    headers.add('From', value);
+
+    test.equal(headers.get('from')[0], `From: ${value}`);
+    test.equal(headers.getDecoded('from')[0].value, value);
+    test.equal(headers.build().toString(), `From: ${value}\r\n\r\n`);
+    test.done();
+};
+
+module.exports['Preserve SMTPUTF8 mailbox with UTF-8 domain'] = test => {
+    let value = 'öäöä@wildduck.äää.test';
+    let headers = new Headers();
+    headers.add('From', value);
+
+    test.equal(headers.get('from')[0], `From: ${value}`);
+    test.equal(headers.getDecoded('from')[0].value, value);
+    test.equal(headers.build().toString(), `From: ${value}\r\n\r\n`);
+    test.done();
+};
+
+module.exports['Preserve UTF-8 display name and mailbox'] = test => {
+    let value = '"Jöhn Dœ" <öäöä@wildduck.xn--4caaa.test>';
+    let headers = new Headers();
+    headers.add('From', value);
+
+    test.equal(headers.get('from')[0], `From: ${value}`);
+    test.equal(headers.getDecoded('from')[0].value, value);
+    test.equal(headers.build().toString(), `From: ${value}\r\n\r\n`);
+    test.done();
+};
+
+module.exports['Preserve ASCII address round-trip'] = test => {
+    let value = 'ascii@example.com';
+    let headers = new Headers();
+    headers.add('From', value);
+
+    test.equal(headers.get('from')[0], `From: ${value}`);
+    test.equal(headers.getDecoded('from')[0].value, value);
+    test.equal(headers.build().toString(), `From: ${value}\r\n\r\n`);
+    test.done();
+};
