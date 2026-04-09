@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.9](https://github.com/zone-eu/mailsplit/compare/v5.4.8...v5.4.9) (2026-04-09)
+
+
+### Bug Fixes
+
+* ZMS-47: Fix utf-8 header round-trip in Headers.add() ([#46](https://github.com/zone-eu/mailsplit/issues/46)) ([629928b](https://github.com/zone-eu/mailsplit/commit/629928b1eb22f4ae2753b13eb1df633460b994b2))
+
 ## [5.4.8](https://github.com/zone-eu/mailsplit/compare/v5.4.7...v5.4.8) (2025-12-08)
 
 
