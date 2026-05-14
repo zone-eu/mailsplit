@@ -1,5 +1,14 @@
 # Changelog
 
+## [5.4.10](https://github.com/zone-eu/mailsplit/compare/v5.4.9...v5.4.10) (2026-05-14)
+
+
+### Bug Fixes
+
+* add mimenode export ([#51](https://github.com/zone-eu/mailsplit/issues/51)) ([0a4e261](https://github.com/zone-eu/mailsplit/commit/0a4e261090df664d771af32493deb48334bf5dfb))
+* Bump minimatch and grunt ([#50](https://github.com/zone-eu/mailsplit/issues/50)) ([08d10f8](https://github.com/zone-eu/mailsplit/commit/08d10f8d00d2362ce85a7ee2058ecc5cad9789aa))
+* ZMS-63: Add types to project ([#48](https://github.com/zone-eu/mailsplit/issues/48)) ([ab58791](https://github.com/zone-eu/mailsplit/commit/ab587910d32d0341cfaea130fa7d9172ef53f53e))
+
 ## [5.4.9](https://github.com/zone-eu/mailsplit/compare/v5.4.8...v5.4.9) (2026-04-09)
 
 
