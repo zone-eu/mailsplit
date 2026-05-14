@@ -6,6 +6,7 @@ import Rewriter = require('./lib/node-rewriter');
 import Streamer = require('./lib/node-streamer');
 import ChunkedPassthrough = require('./lib/chunked-passthrough');
 import Headers = require('./lib/headers');
+import MimeNode = require('./lib/mime-node');
 
 export {
     Splitter,
@@ -13,7 +14,8 @@ export {
     Rewriter,
     Streamer,
     ChunkedPassthrough,
-    Headers
+    Headers,
+    MimeNode
 };
 
 export type {
