@@ -7,6 +7,7 @@ const NodeStreamer = require('./lib/node-streamer');
 const Headers = require('./lib/headers');
 const ChunkedPassthrough = require('./lib/chunked-passthrough');
 
+/** @type {typeof import('.')} */
 module.exports = {
     Splitter: MessageSplitter,
     Joiner: MessageJoiner,
