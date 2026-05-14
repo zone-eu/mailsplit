@@ -29,7 +29,7 @@
         "eslint": "8.29.0",
         "eslint-config-nodemailer": "1.2.0",
         "eslint-config-prettier": "9.1.0",
-        "grunt": "1.6.1",
+        "grunt": "1.6.2",
         "grunt-cli": "1.5.0",
         "grunt-contrib-nodeunit": "5.0.0",
         "grunt-eslint": "24.0.1",
