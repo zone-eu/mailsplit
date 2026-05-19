@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.11](https://github.com/zone-eu/mailsplit/compare/v5.4.10...v5.4.11) (2026-05-19)
+
+
+### Bug Fixes
+
+* Add jsdoc to funcs ([#52](https://github.com/zone-eu/mailsplit/issues/52)) ([efb3d3c](https://github.com/zone-eu/mailsplit/commit/efb3d3c9582d4cdd620e8e8821b01df34a979b08))
+
 ## [5.4.10](https://github.com/zone-eu/mailsplit/compare/v5.4.9...v5.4.10) (2026-05-14)
 
 
