@@ -59,9 +59,6 @@ export type {
     /** Decoded structured header value. */
     DecodedHeader,
 
-    /** MIME node shape emitted by `Splitter`. */
-    MimeNode,
-
     /** Data or body bytes emitted by `Splitter`. */
     MessageChunk,
 
