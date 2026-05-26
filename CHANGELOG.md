@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.12](https://github.com/zone-eu/mailsplit/compare/v5.4.11...v5.4.12) (2026-05-26)
+
+
+### Bug Fixes
+
+* fix ts2300 error ([#55](https://github.com/zone-eu/mailsplit/issues/55)) ([42f2196](https://github.com/zone-eu/mailsplit/commit/42f2196c72417fc366249b2c392dc9e6cab0a88e))
+
 ## [5.4.11](https://github.com/zone-eu/mailsplit/compare/v5.4.10...v5.4.11) (2026-05-19)
 
 
