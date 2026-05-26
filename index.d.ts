@@ -28,7 +28,6 @@ export type {
     FlowedDecoderOptions,
     HeaderLine,
     DecodedHeader,
-    MimeNode,
     MessageChunk,
     EmptyChunk,
     SplitterChunk,
