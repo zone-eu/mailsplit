@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.13](https://github.com/zone-eu/mailsplit/compare/v5.4.12...v5.4.13) (2026-06-25)
+
+
+### Bug Fixes
+
+* bumped libmime ([ed8059c](https://github.com/zone-eu/mailsplit/commit/ed8059c2e14640e815d9a74fbae42d46e1a47705))
+
 ## [5.4.12](https://github.com/zone-eu/mailsplit/compare/v5.4.11...v5.4.12) (2026-05-26)
 
 
