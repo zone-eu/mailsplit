@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.14](https://github.com/zone-eu/mailsplit/compare/v5.4.13...v5.4.14) (2026-07-05)
+
+
+### Bug Fixes
+
+* update dependencies (libmime 5.4.1) ([5020eb5](https://github.com/zone-eu/mailsplit/commit/5020eb5d493b08fc15642c7b734a9f0a95d7fb18))
+
 ## [5.4.13](https://github.com/zone-eu/mailsplit/compare/v5.4.12...v5.4.13) (2026-06-25)
 
 
