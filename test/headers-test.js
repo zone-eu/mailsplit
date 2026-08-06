@@ -174,3 +174,121 @@ module.exports['Preserve ASCII address round-trip'] = test => {
     test.equal(headers.build().toString(), `From: ${value}\r\n\r\n`);
     test.done();
 };
+
+module.exports['Strip CR and LF from added header values'] = test => {
+    let headers = new Headers();
+    headers.add('X-Test', 'value\rInjected: yes\r\nX-Also: 1\nmore');
+    test.equal(headers.build().toString(), 'X-Test: valueInjected: yesX-Also: 1more\r\n\r\n');
+    test.done();
+};
+
+module.exports['Drop lone CR from modified headers'] = test => {
+    // a bare <CR> is not a line break when parsing, so building one into a real line
+    // ending would emit a header that was never reported as parsed
+    let headers = new Headers(Buffer.from('From: victim@example.com\r\nSubject: hello\rBcc: attacker@example.com\r\nTo: user@example.com\r\n\r\n'));
+    headers.add('X-Scan', 'clean');
+
+    let built = headers.build().toString();
+    test.equal(built, 'X-Scan: clean\r\nFrom: victim@example.com\r\nSubject: helloBcc: attacker@example.com\r\nTo: user@example.com\r\n\r\n');
+    test.deepEqual(
+        new Headers(Buffer.from(built))
+            .getList()
+            .map(line => line.key)
+            .sort(),
+        ['from', 'subject', 'to', 'x-scan']
+    );
+    test.done();
+};
+
+module.exports['Drop lone CR that precedes whitespace'] = test => {
+    // a <CR><SP> at the start of a wire line parses as its own header, so promoting the
+    // <CR> to a fold would put a blank line mid block and demote every later header
+    // (Subject, DKIM-Signature) into the message body
+    let raw = 'From: victim@example.com\r\n\r X: y\r\nSubject: quarterly report\r\nDKIM-Signature: v=1\r\n\r\n';
+    let headers = new Headers(Buffer.from(raw, 'binary'));
+    let reported = headers.getList().map(line => line.key);
+    headers.add('X-Scan', 'clean');
+
+    let built = headers.build().toString('binary');
+    test.equal(built, 'X-Scan: clean\r\nFrom: victim@example.com\r\nX: y\r\nSubject: quarterly report\r\nDKIM-Signature: v=1\r\n\r\n');
+    // the header block ends exactly once, at the end
+    test.ok(!built.slice(0, -4).includes('\r\n\r\n'), 'the header block must not be closed early');
+    test.deepEqual(
+        new Headers(Buffer.from(built, 'binary')).getList().map(line => line.key),
+        ['x-scan'].concat(reported)
+    );
+    test.done();
+};
+
+module.exports['Drop a leading fold from an added header line'] = test => {
+    // build() joins lines with the line ending, so a line that starts with one would
+    // close the header block
+    let headers = new Headers();
+    headers.addFormatted('X-Test', '\r\n Bcc: attacker@example.com');
+    headers.add('Subject', 'hi');
+
+    let built = headers.build().toString();
+    test.ok(!built.slice(0, -4).includes('\r\n\r\n'), 'the header block must not be closed early');
+    // one insertion may never produce more than one header line
+    test.equal(new Headers(Buffer.from(built)).getList().length, 2);
+    test.done();
+};
+
+module.exports['Keep a trailing CR from ending the header block'] = test => {
+    let headers = new Headers(Buffer.from('From: a@example.com\r\nSubject: hi\r\r\nTo: user@example.com\r\nX-Important: yes\r\n\r\n'));
+    headers.add('Received', 'from localhost');
+
+    let keys = new Headers(Buffer.from(headers.build().toString()))
+        .getList()
+        .map(line => line.key)
+        .sort();
+    // an expanded <CR> would close the header block and demote the rest into the body
+    test.deepEqual(keys, ['from', 'received', 'subject', 'to', 'x-important']);
+    test.done();
+};
+
+module.exports['Strip CR and LF from added header keys'] = test => {
+    let headers = new Headers();
+    headers.add('X-Test\r\nBcc: attacker@example.com', 'ok');
+
+    test.equal(headers.build().toString(), 'X-TestBcc: attacker@example.com: ok\r\n\r\n');
+    test.ok(!headers.hasHeader('bcc'));
+    test.done();
+};
+
+module.exports['Strip injected header lines from addFormatted'] = test => {
+    let headers = new Headers();
+    headers.addFormatted('X-Test', 'X-Test: value\r\nBcc: attacker@example.com');
+
+    let built = headers.build().toString();
+    test.equal(built, 'X-Test: valueBcc: attacker@example.com\r\n\r\n');
+    test.deepEqual(
+        new Headers(Buffer.from(built)).getList().map(line => line.key),
+        ['x-test']
+    );
+    test.done();
+};
+
+module.exports['Keep folded header lines when rebuilding'] = test => {
+    let headers = new Headers(Buffer.from('Subject: a very long subject\r\n\tthat is folded\r\nTo: user@example.com\r\n\r\n'));
+    headers.add('X-Added', 'value');
+
+    // folding is a line break followed by whitespace, it has to survive
+    test.equal(headers.build().toString(), 'X-Added: value\r\nSubject: a very long subject\r\n\tthat is folded\r\nTo: user@example.com\r\n\r\n');
+    test.equal(headers.build('\n').toString(), 'X-Added: value\nSubject: a very long subject\n\tthat is folded\nTo: user@example.com\n\n');
+    test.done();
+};
+
+module.exports['Use lineEnd literally when rebuilding'] = test => {
+    let headers = new Headers(Buffer.from('Subject: a very long subject\r\n\tthat is folded\r\nX: y\r\n\r\n'));
+
+    // lineEnd is caller supplied, so $&, $` and $' may not act as replacement patterns
+    test.equal(headers.build("$'").toString(), "Subject: a very long subject$'\tthat is folded$'X: y$'$'");
+    test.done();
+};
+
+module.exports['Keep unmodified headers byte exact'] = test => {
+    let raw = 'Subject: test\rinjected\r\nTo: user@example.com\r\n\r\n';
+    test.equal(new Headers(Buffer.from(raw, 'binary')).build().toString('binary'), raw);
+    test.done();
+};

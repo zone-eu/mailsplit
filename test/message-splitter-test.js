@@ -768,3 +768,330 @@ module.exports['Handle really large header'] = test => {
 
     splitter.end(Buffer.concat(chunks));
 };
+
+// Feeds a message to a splitter in fixed size writes and collects the parsed
+// structure, so that the result can be compared across write chunk sizes. The raw
+// bytes come back through a real MessageJoiner rather than being reassembled here.
+const splitInChunks = (message, chunkSize, config, callback) => {
+    let splitter = new MessageSplitter(config);
+    let joiner = new MessageJoiner();
+    let nodes = [];
+    let raw = [];
+    let byNode = new Map();
+    let order = [];
+    let done = false;
+
+    let finish = err => {
+        if (done) {
+            return;
+        }
+        done = true;
+        callback(err || null, {
+            nodes,
+            raw: Buffer.concat(raw).toString('binary'),
+            content: order.map(node => ({
+                contentType: node.contentType || '',
+                value: Buffer.concat(byNode.get(node)).toString('binary')
+            })),
+            boundaries: order.map(node => (node._boundary ? node._boundary.toString() : false))
+        });
+    };
+
+    let track = node => {
+        if (!byNode.has(node)) {
+            byNode.set(node, []);
+            order.push(node);
+        }
+        return byNode.get(node);
+    };
+
+    splitter.on('data', data => {
+        if (data.type === 'node') {
+            nodes.push(data.contentType || '');
+            track(data);
+        } else if (data.value && data.type === 'body') {
+            track(data.node).push(data.value);
+        }
+    });
+
+    joiner.on('data', data => raw.push(data));
+    joiner.on('end', () => finish(null));
+    splitter.on('error', finish);
+    joiner.on('error', finish);
+    splitter.pipe(joiner);
+
+    let buf = Buffer.from(message, 'binary');
+    let pos = 0;
+    let feed = () => {
+        if (pos >= buf.length) {
+            return splitter.end();
+        }
+        splitter.write(buf.slice(pos, pos + chunkSize));
+        pos += chunkSize;
+        setImmediate(feed);
+    };
+    feed();
+};
+
+// Asserts that a message parses into the expected content types and that the bytes
+// survive a splitter/joiner round trip. `extra` is the number of assertions the
+// caller adds in its own callback.
+const testStructure = (test, message, expectedNodes, extra, callback) => {
+    test.expect(3 + (extra || 0));
+    splitInChunks(message, message.length, undefined, (err, single) => {
+        test.ifError(err);
+        test.deepEqual(single.nodes, expectedNodes);
+        test.equal(single.raw, message);
+        if (callback) {
+            return callback(single);
+        }
+        return test.done();
+    });
+};
+
+// Parses the same message at every given write chunk size and runs `assert` on each
+// result, so that a test can pin behavior that must not depend on write boundaries.
+const forEachChunkSize = (test, message, sizes, config, assert) => {
+    let remaining = sizes.slice();
+    let next = () => {
+        if (!remaining.length) {
+            return test.done();
+        }
+        let chunkSize = remaining.shift();
+        splitInChunks(message, chunkSize, config, (err, result) => {
+            assert(err, result, chunkSize);
+            next();
+        });
+    };
+    next();
+};
+
+module.exports['Do not parse nodes after closing boundary'] = test => {
+    testStructure(
+        test,
+        'From: a@b.com\r\n' +
+            'Content-Type: multipart/mixed; boundary=BOUND\r\n' +
+            '\r\n' +
+            '--BOUND\r\n' +
+            'Content-Type: text/plain\r\n' +
+            '\r\n' +
+            'hello\r\n' +
+            '--BOUND--\r\n' +
+            '\r\n' +
+            '--BOUND\r\n' +
+            'Content-Type: text/html\r\n' +
+            '\r\n' +
+            '<b>smuggled?</b>\r\n' +
+            '--BOUND--\r\n',
+        // the text/html part is epilogue and must not become a node
+        ['multipart/mixed', 'text/plain']
+    );
+};
+
+module.exports['Do not parse nodes after closing boundary of a nested multipart'] = test => {
+    testStructure(
+        test,
+        'Content-Type: multipart/mixed; boundary=OUTER\r\n' +
+            '\r\n' +
+            '--OUTER\r\n' +
+            'Content-Type: multipart/alternative; boundary=INNER\r\n' +
+            '\r\n' +
+            '--INNER--\r\n' +
+            '--OUTER--\r\n' +
+            '--OUTER\r\n' +
+            'Content-Type: text/html\r\n' +
+            '\r\n' +
+            '<b>smuggled?</b>\r\n' +
+            '--OUTER--\r\n',
+        // an unpopped nested multipart may not keep the outer boundary alive
+        ['multipart/mixed', 'multipart/alternative']
+    );
+};
+
+module.exports['Do not parse nodes after closing boundary of an unterminated multipart'] = test => {
+    testStructure(
+        test,
+        'Content-Type: multipart/mixed; boundary=OUTER\r\n' +
+            '\r\n' +
+            '--OUTER\r\n' +
+            'Content-Type: multipart/alternative; boundary=INNER\r\n' +
+            '\r\n' +
+            '--OUTER--\r\n' +
+            '--OUTER\r\n' +
+            'Content-Type: text/html\r\n' +
+            '\r\n' +
+            '<b>smuggled?</b>\r\n' +
+            '--OUTER--\r\n',
+        ['multipart/mixed', 'multipart/alternative']
+    );
+};
+
+module.exports['Do not parse nodes after closing boundary of an embedded message'] = test => {
+    testStructure(
+        test,
+        'Content-Type: multipart/mixed; boundary=OUTER\r\n' +
+            '\r\n' +
+            '--OUTER\r\n' +
+            'Content-Type: message/rfc822\r\n' +
+            'Content-Disposition: inline\r\n' +
+            '\r\n' +
+            'Subject: inner\r\n' +
+            'Content-Type: multipart/alternative; boundary=INNER\r\n' +
+            '\r\n' +
+            '--OUTER--\r\n' +
+            '--OUTER\r\n' +
+            'Content-Type: text/html\r\n' +
+            '\r\n' +
+            '<b>smuggled?</b>\r\n' +
+            '--OUTER--\r\n',
+        ['multipart/mixed', 'message/rfc822', 'multipart/alternative']
+    );
+};
+
+module.exports['Keep parsing siblings after a bogus boundary on a leaf node'] = test => {
+    testStructure(
+        test,
+        'Content-Type: multipart/mixed; boundary=OUTER\r\n' +
+            '\r\n' +
+            '--OUTER\r\n' +
+            'Content-Type: text/plain; boundary=FAKE\r\n' +
+            '\r\n' +
+            'hello\r\n' +
+            '--FAKE\r\n' +
+            '--FAKE--\r\n' +
+            '--OUTER\r\n' +
+            'Content-Type: application/octet-stream\r\n' +
+            'Content-Disposition: attachment; filename=payload.bin\r\n' +
+            '\r\n' +
+            'PAYLOAD\r\n' +
+            '--OUTER--\r\n',
+        // closing a boundary of a leaf node may not deactivate the real one,
+        // the attachment must stay visible to the node stream
+        ['multipart/mixed', 'text/plain', 'application/octet-stream']
+    );
+};
+
+module.exports['Keep parsing parts after a closing boundary in the preamble'] = test => {
+    testStructure(
+        test,
+        'Content-Type: multipart/mixed; boundary=P\r\n' +
+            '\r\n' +
+            'preamble\r\n' +
+            '--P--\r\n' +
+            '--P\r\n' +
+            'Content-Type: text/plain\r\n' +
+            '\r\n' +
+            'SECRET\r\n' +
+            '--P--\r\n',
+        ['multipart/mixed', 'text/plain']
+    );
+};
+
+module.exports['Keep the boundary of emitted nodes intact'] = test => {
+    testStructure(
+        test,
+        'Content-Type: multipart/mixed; boundary=OUT\r\n' +
+            '\r\n' +
+            '--OUT\r\n' +
+            'Content-Type: multipart/alternative; boundary=IN\r\n' +
+            '\r\n' +
+            '--IN\r\n' +
+            'Content-Type: text/plain\r\n' +
+            '\r\n' +
+            'plain\r\n' +
+            '--IN--\r\n' +
+            '--OUT--\r\n',
+        ['multipart/mixed', 'multipart/alternative', 'text/plain'],
+        1,
+        result => {
+            // the splitter tracks closed boundaries on its own, the boundary of an
+            // already emitted node may not be cleared behind the consumer's back
+            test.deepEqual(result.boundaries, ['OUT', 'IN', false]);
+            test.done();
+        }
+    );
+};
+
+module.exports['Attribute body content independently of the write chunk size'] = test => {
+    let body = 'P'.repeat(120);
+    let message = 'Content-Type: multipart/mixed; boundary=BB\r\n\r\n--BB\r\nContent-Type: text/plain\r\n\r\n' + body + '\r\n--BB--\r\n';
+
+    let sizes = [16, 39, 47, 78, 117, 137, 234, 235, 411, 64 * 1024];
+    test.expect(sizes.length * 3);
+
+    forEachChunkSize(test, message, sizes, undefined, (err, result) => {
+        test.ifError(err);
+        test.equal(result.raw, message);
+        // the trailing line break belongs to the boundary, never to the body
+        test.equal(result.content.map(part => part.value).join('|'), '|' + body);
+    });
+};
+
+module.exports['Flush an overlong body line instead of buffering it'] = test => {
+    let preamble = 'Content-Type: multipart/mixed; boundary=BB\r\n\r\n--BB\r\nContent-Type: text/plain\r\n\r\n';
+    // Sized so that the pending line is flushed exactly at the end of the overlong
+    // line when written in 64kB pieces. What follows the flush then looks like a
+    // closing delimiter, even though it is the tail of a line that started earlier.
+    let chunkSize = 64 * 1024;
+    let longLine = 'x'.repeat(3 * chunkSize - preamble.length) + '--BB--';
+    let message = preamble + longLine + '\r\n--BB\r\nContent-Type: text/plain\r\n\r\nsecond\r\n--BB--\r\n';
+
+    test.expect(6);
+    splitInChunks(message, message.length, undefined, (err, single) => {
+        test.ifError(err);
+        // the delimiter inside the overlong line is content, the one on its own line is not
+        test.deepEqual(single.nodes, ['multipart/mixed', 'text/plain', 'text/plain']);
+        test.equal(single.content[1].value, longLine);
+
+        splitInChunks(message, chunkSize, undefined, (err2, chunked) => {
+            test.ifError(err2);
+            test.equal(chunked.raw, message);
+            // flushing a line in pieces may not change what the message parses into
+            test.deepEqual(chunked.content, single.content);
+            test.done();
+        });
+    });
+};
+
+module.exports['Fail on oversized single header line while writing'] = test => {
+    let splitter = new MessageSplitter({
+        maxHeadSize: 100
+    });
+
+    test.expect(1);
+
+    // the stream is never ended, so report instead of hanging the suite if it is not rejected
+    let timer = setTimeout(() => {
+        test.equal('not rejected', 'EMAXLEN');
+        test.done();
+    }, 2000);
+
+    splitter.on('data', () => {
+        test.ok(false, 'no chunk may be emitted for a rejected message');
+    });
+
+    splitter.once('error', err => {
+        clearTimeout(timer);
+        test.equal(err.code, 'EMAXLEN');
+        test.done();
+    });
+
+    // a single header line without a line break, exceeding maxHeadSize. The stream is
+    // never ended, so this can only be caught while the data is written, not on flush
+    splitter.write('Subject: ' + 'h'.repeat(500));
+};
+
+module.exports['Accept a header block closed by a boundary at the size limit'] = test => {
+    // the closing delimiter is not a header line, so it may not be charged against
+    // maxHeadSize, no matter which write it happens to arrive in
+    let header = 'X-Pad: ' + 'y'.repeat(80);
+    let message = 'Content-Type: multipart/mixed; boundary=B\r\n\r\n--B\r\n' + header + '\r\n--B--\r\n';
+
+    let sizes = [1, 7, 64, 88, 89, 90, 91, 145, 146, 4096];
+    test.expect(sizes.length * 2);
+
+    forEachChunkSize(test, message, sizes, { maxHeadSize: header.length + 2 }, (err, result) => {
+        test.ifError(err);
+        test.deepEqual(result.nodes, ['multipart/mixed', 'text/plain']);
+    });
+};
