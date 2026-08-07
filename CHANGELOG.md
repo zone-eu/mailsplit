@@ -1,5 +1,14 @@
 # Changelog
 
+## [5.4.15](https://github.com/zone-eu/mailsplit/compare/v5.4.14...v5.4.15) (2026-08-07)
+
+
+### Bug Fixes
+
+* close MIME boundary smuggling and header injection holes ([028a6fc](https://github.com/zone-eu/mailsplit/commit/028a6fc4c8e6c46a52326d8fa6587829bd76c9d0))
+* close MIME boundary smuggling and header injection holes ([#59](https://github.com/zone-eu/mailsplit/issues/59)) ([23b1bbd](https://github.com/zone-eu/mailsplit/commit/23b1bbd3b5bc03bbd9a42bf6f69b11e6b11dd962))
+* resolve boundary owners exactly and stop rebuilding broken headers ([06a1159](https://github.com/zone-eu/mailsplit/commit/06a1159855638d1a52b2e42e21e688f774e3b538))
+
 ## [5.4.14](https://github.com/zone-eu/mailsplit/compare/v5.4.13...v5.4.14) (2026-07-05)
 
 
