@@ -781,12 +781,16 @@ const splitInChunks = (message, chunkSize, config, callback) => {
     let order = [];
     let done = false;
 
+    let failure = null;
     let finish = err => {
+        // an error arriving after 'end' still has to reach the caller, otherwise a real
+        // regression reports green
+        failure = failure || err || null;
         if (done) {
             return;
         }
         done = true;
-        callback(err || null, {
+        callback(failure, {
             nodes,
             raw: Buffer.concat(raw).toString('binary'),
             content: order.map(node => ({
@@ -836,16 +840,35 @@ const splitInChunks = (message, chunkSize, config, callback) => {
 // Asserts that a message parses into the expected content types and that the bytes
 // survive a splitter/joiner round trip. `extra` is the number of assertions the
 // caller adds in its own callback.
+// Write sizes every structural test is checked at, so that a structural claim can never
+// hold for one write and fail once the message arrives split across several.
+const STRUCTURE_CHUNK_SIZES = [1, 7, 64, 1024];
+
 const testStructure = (test, message, expectedNodes, extra, callback) => {
-    test.expect(3 + (extra || 0));
+    test.expect(3 + 3 * STRUCTURE_CHUNK_SIZES.length + (extra || 0));
     splitInChunks(message, message.length, undefined, (err, single) => {
         test.ifError(err);
         test.deepEqual(single.nodes, expectedNodes);
         test.equal(single.raw, message);
-        if (callback) {
-            return callback(single);
-        }
-        return test.done();
+
+        let remaining = STRUCTURE_CHUNK_SIZES.slice();
+        let next = () => {
+            if (!remaining.length) {
+                if (callback) {
+                    return callback(single);
+                }
+                return test.done();
+            }
+            let chunkSize = remaining.shift();
+            splitInChunks(message, chunkSize, undefined, (err2, chunked) => {
+                test.ifError(err2);
+                test.deepEqual(chunked.nodes, expectedNodes);
+                // parsing may not depend on where the writes happened to fall
+                test.deepEqual(chunked.content, single.content);
+                next();
+            });
+        };
+        next();
     });
 };
 
@@ -1094,4 +1117,153 @@ module.exports['Accept a header block closed by a boundary at the size limit'] =
         test.ifError(err);
         test.deepEqual(result.nodes, ['multipart/mixed', 'text/plain']);
     });
+};
+
+module.exports['Flush an overlong line in multipart data'] = test => {
+    // the same guard on a multipart node, where the flushed pieces are structure
+    // bytes rather than part content
+    let longLine = 'z'.repeat(200 * 1024);
+    let message = 'Content-Type: multipart/mixed; boundary=BB\r\n\r\n' + longLine + '\r\n--BB\r\nContent-Type: text/plain\r\n\r\nhi\r\n--BB--\r\n';
+
+    test.expect(5);
+    splitInChunks(message, message.length, undefined, (err, single) => {
+        test.ifError(err);
+        test.deepEqual(single.nodes, ['multipart/mixed', 'text/plain']);
+
+        splitInChunks(message, 8 * 1024, undefined, (err2, chunked) => {
+            test.ifError(err2);
+            test.equal(chunked.raw, message);
+            test.deepEqual(chunked.content, single.content);
+            test.done();
+        });
+    });
+};
+
+module.exports['Handle a closing delimiter without a parent multipart'] = test => {
+    // nothing to move up to, the delimiter is just content
+    testStructure(test, 'Subject: t\r\nContent-Type: text/plain\r\n\r\nbody\r\n--NOPE--\r\n', ['text/plain']);
+};
+
+module.exports['Fail on too many child nodes'] = test => {
+    let message = 'Content-Type: multipart/mixed; boundary=B\r\n\r\n';
+    for (let i = 0; i < 12; i++) {
+        message += '--B\r\nContent-Type: text/plain\r\n\r\npart' + i + '\r\n';
+    }
+    message += '--B--\r\n';
+
+    test.expect(1);
+    splitInChunks(message, 4096, { maxChildNodes: 5 }, err => {
+        test.equal(err && err.code, 'EMAXLEN');
+        test.done();
+    });
+};
+
+module.exports['Keep parsing siblings after a bogus boundary on an rfc822 leaf'] = test => {
+    // a message/rfc822 part that was not inlined is a plain leaf, so it owns the boundary
+    // its own boundary= parameter declares. Retiring the enclosing multipart instead would
+    // hide every following part, attachments included
+    testStructure(
+        test,
+        'Content-Type: multipart/mixed; boundary=OUT\r\n' +
+            '\r\n' +
+            '--OUT\r\n' +
+            'Content-Type: message/rfc822; boundary=FOO\r\n' +
+            '\r\n' +
+            '--FOO\r\n' +
+            'Content-Type: text/plain\r\n' +
+            '\r\n' +
+            'inner\r\n' +
+            '--FOO--\r\n' +
+            '--OUT\r\n' +
+            'Content-Type: application/octet-stream\r\n' +
+            'Content-Disposition: attachment; filename=payload.bin\r\n' +
+            '\r\n' +
+            'PAYLOAD\r\n' +
+            '--OUT--\r\n',
+        ['multipart/mixed', 'message/rfc822', 'text/plain', 'application/octet-stream']
+    );
+};
+
+module.exports['Report a body that is only a line ending'] = test => {
+    // the line ending in front of a delimiter is the delimiter's, but a part whose whole
+    // body is that line ending must still report a body, otherwise a rewriter cannot tell
+    // an empty part from one it never saw and appends a line break of its own
+    let message =
+        'Content-Type: multipart/mixed; boundary=B\r\n' +
+        '\r\n' +
+        '--B\r\n' +
+        'Content-Type: text/plain\r\n' +
+        '\r\n' +
+        '\r\n' +
+        '--B\r\n' +
+        'Content-Type: text/plain\r\n' +
+        '\r\n' +
+        'second\r\n' +
+        '--B--\r\n';
+
+    test.expect(3);
+    let splitter = new MessageSplitter();
+    let bodies = [];
+    splitter.on('data', data => {
+        if (data.type === 'body') {
+            bodies.push(data.value.toString('binary'));
+        }
+    });
+    splitter.on('error', err => {
+        test.ifError(err);
+        test.done();
+    });
+    splitter.on('end', () => {
+        test.equal(bodies.length, 2, 'both parts must report a body');
+        test.equal(bodies[0], '\r\n');
+        test.equal(bodies[1], 'second');
+        test.done();
+    });
+    splitter.end(Buffer.from(message, 'binary'));
+};
+
+module.exports['Keep an overlong body line free of a spurious CR'] = test => {
+    // the flush may not hand out a trailing <CR>, it can still turn out to be the first
+    // half of the line ending that belongs to the delimiter behind it
+    let lineLen = 65535;
+    let line = 'y'.repeat(lineLen);
+    let message = 'Content-Type: multipart/mixed; boundary=BB\r\n\r\n--BB\r\nContent-Type: text/plain\r\n\r\n' + line + '\r\n--BB--\r\n';
+
+    let sizes = [1, 16, 100, 1024, 65536];
+    test.expect(sizes.length * 2);
+
+    forEachChunkSize(test, message, sizes, undefined, (err, result) => {
+        test.ifError(err);
+        test.equal(result.content[1].value, line);
+    });
+};
+
+module.exports['Keep parsing siblings after a nested inline message closes'] = test => {
+    // the child of an inlined message/rfc822 inherits the boundary of that block's own
+    // parent, one step up and no further. Resolving the owner by climbing past every
+    // inlined block lands on the enclosing multipart and retires a boundary that is still
+    // live, which hides every part after it while the bytes still round-trip
+    testStructure(
+        test,
+        'Content-Type: multipart/mixed; boundary=OUT\r\n' +
+            '\r\n' +
+            '--OUT\r\n' +
+            'Content-Type: message/rfc822; boundary=MID\r\n' +
+            'Content-Disposition: inline\r\n' +
+            '\r\n' +
+            'Content-Type: message/rfc822\r\n' +
+            'Content-Disposition: inline\r\n' +
+            '\r\n' +
+            'Content-Type: text/plain\r\n' +
+            '\r\n' +
+            'inner body\r\n' +
+            '--MID--\r\n' +
+            '--OUT\r\n' +
+            'Content-Type: application/octet-stream\r\n' +
+            'Content-Disposition: attachment; filename=payload.bin\r\n' +
+            '\r\n' +
+            'PAYLOAD\r\n' +
+            '--OUT--\r\n',
+        ['multipart/mixed', 'message/rfc822', 'message/rfc822', 'text/plain', 'application/octet-stream']
+    );
 };

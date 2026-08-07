@@ -2,6 +2,14 @@
 
 let Headers = require('../lib/headers');
 
+// Parses a built header block back and returns its keys, so that a test can compare what
+// build() emits against what the parser reports.
+const keysOf = built => new Headers(Buffer.from(built, 'binary')).getList().map(line => line.key);
+
+// The header block ends exactly once, at the very end. An earlier empty line would demote
+// every header after it into the message body.
+const assertBlockNotClosedEarly = (test, built) => test.ok(!built.slice(0, -4).includes('\r\n\r\n'), 'the header block must not be closed early');
+
 module.exports['Return original headers'] = test => {
     let headerStr = 'Subject: test\nMIME-Version: 1.0\nMessage-ID: <abc@def>\n\n';
     let headers = new Headers(Buffer.from(headerStr));
@@ -190,13 +198,7 @@ module.exports['Drop lone CR from modified headers'] = test => {
 
     let built = headers.build().toString();
     test.equal(built, 'X-Scan: clean\r\nFrom: victim@example.com\r\nSubject: helloBcc: attacker@example.com\r\nTo: user@example.com\r\n\r\n');
-    test.deepEqual(
-        new Headers(Buffer.from(built))
-            .getList()
-            .map(line => line.key)
-            .sort(),
-        ['from', 'subject', 'to', 'x-scan']
-    );
+    test.deepEqual(keysOf(built).sort(), ['from', 'subject', 'to', 'x-scan']);
     test.done();
 };
 
@@ -206,17 +208,35 @@ module.exports['Drop lone CR that precedes whitespace'] = test => {
     // (Subject, DKIM-Signature) into the message body
     let raw = 'From: victim@example.com\r\n\r X: y\r\nSubject: quarterly report\r\nDKIM-Signature: v=1\r\n\r\n';
     let headers = new Headers(Buffer.from(raw, 'binary'));
-    let reported = headers.getList().map(line => line.key);
     headers.add('X-Scan', 'clean');
 
     let built = headers.build().toString('binary');
-    test.equal(built, 'X-Scan: clean\r\nFrom: victim@example.com\r\nX: y\r\nSubject: quarterly report\r\nDKIM-Signature: v=1\r\n\r\n');
+    // what is left of the line folds into the header above it, so it adds no header
+    test.equal(built, 'X-Scan: clean\r\nFrom: victim@example.com\r\n X: y\r\nSubject: quarterly report\r\nDKIM-Signature: v=1\r\n\r\n');
     // the header block ends exactly once, at the end
-    test.ok(!built.slice(0, -4).includes('\r\n\r\n'), 'the header block must not be closed early');
-    test.deepEqual(
-        new Headers(Buffer.from(built, 'binary')).getList().map(line => line.key),
-        ['x-scan'].concat(reported)
-    );
+    assertBlockNotClosedEarly(test, built);
+    test.deepEqual(keysOf(built), ['x-scan', 'from', 'subject', 'dkim-signature']);
+    test.done();
+};
+
+module.exports['Keep an indented first header line folded'] = test => {
+    // ' Bcc: ...' is a continuation, not a header. Making it a header of its own would
+    // synthesize an attacker chosen recipient out of input no other parser reads that way
+    let headers = new Headers(Buffer.from(' Bcc: attacker@example.com\r\nFrom: victim@example.com\r\nSubject: s\r\n\r\n', 'binary'));
+    headers.add('X-Scan', 'clean');
+
+    let keys = keysOf(headers.build().toString('binary'));
+    test.deepEqual(keys, ['x-scan', 'from', 'subject']);
+    test.done();
+};
+
+module.exports['Keep a whitespace only header line from ending the block'] = test => {
+    let headers = new Headers(Buffer.from('  \r\nSubject: secret\r\nTo: user@example.com\r\n\r\n', 'binary'));
+    headers.add('X-Scan', 'clean');
+
+    let built = headers.build().toString('binary');
+    assertBlockNotClosedEarly(test, built);
+    test.deepEqual(keysOf(built), ['x-scan', 'subject', 'to']);
     test.done();
 };
 
@@ -228,7 +248,7 @@ module.exports['Drop a leading fold from an added header line'] = test => {
     headers.add('Subject', 'hi');
 
     let built = headers.build().toString();
-    test.ok(!built.slice(0, -4).includes('\r\n\r\n'), 'the header block must not be closed early');
+    assertBlockNotClosedEarly(test, built);
     // one insertion may never produce more than one header line
     test.equal(new Headers(Buffer.from(built)).getList().length, 2);
     test.done();
@@ -238,10 +258,7 @@ module.exports['Keep a trailing CR from ending the header block'] = test => {
     let headers = new Headers(Buffer.from('From: a@example.com\r\nSubject: hi\r\r\nTo: user@example.com\r\nX-Important: yes\r\n\r\n'));
     headers.add('Received', 'from localhost');
 
-    let keys = new Headers(Buffer.from(headers.build().toString()))
-        .getList()
-        .map(line => line.key)
-        .sort();
+    let keys = keysOf(headers.build().toString()).sort();
     // an expanded <CR> would close the header block and demote the rest into the body
     test.deepEqual(keys, ['from', 'received', 'subject', 'to', 'x-important']);
     test.done();
@@ -262,10 +279,7 @@ module.exports['Strip injected header lines from addFormatted'] = test => {
 
     let built = headers.build().toString();
     test.equal(built, 'X-Test: valueBcc: attacker@example.com\r\n\r\n');
-    test.deepEqual(
-        new Headers(Buffer.from(built)).getList().map(line => line.key),
-        ['x-test']
-    );
+    test.deepEqual(keysOf(built), ['x-test']);
     test.done();
 };
 
@@ -290,5 +304,29 @@ module.exports['Use lineEnd literally when rebuilding'] = test => {
 module.exports['Keep unmodified headers byte exact'] = test => {
     let raw = 'Subject: test\rinjected\r\nTo: user@example.com\r\n\r\n';
     test.equal(new Headers(Buffer.from(raw, 'binary')).build().toString('binary'), raw);
+    test.done();
+};
+
+module.exports['Strip injected header lines from supplied header objects'] = test => {
+    // an array of lines skips _parseHeaders entirely, so build() is the only place
+    // that can stop a line supplied by the caller from becoming two headers
+    let headers = new Headers([
+        { key: 'x-test', line: 'X-Test: value\r\nBcc: attacker@example.com' },
+        { key: 'subject', line: 'Subject: hi' }
+    ]);
+
+    let built = headers.build().toString();
+    test.equal(built, 'X-Test: valueBcc: attacker@example.com\r\nSubject: hi\r\n\r\n');
+    test.deepEqual(keysOf(built), ['x-test', 'subject']);
+    test.done();
+};
+
+module.exports['Strip injected header lines from a Buffer header line'] = test => {
+    let headers = new Headers();
+    headers.addFormatted('X-Test', Buffer.from('X-Test: value\r\nBcc: attacker@example.com'));
+
+    let built = headers.build().toString();
+    test.equal(built, 'X-Test: valueBcc: attacker@example.com\r\n\r\n');
+    test.ok(!headers.hasHeader('bcc'));
     test.done();
 };
