@@ -81,6 +81,9 @@ export interface MimeNode {
     /** Boundary inherited from the parent multipart node, or `false` when absent. */
     _parentBoundary: Buffer | false;
 
+    /** Node whose boundary `_parentBoundary` was copied from. */
+    _parentBoundaryOwner: MimeNode | false;
+
     /** Length, in bytes, of the raw header block collected for this node. */
     _headerlen: number;
 
