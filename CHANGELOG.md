@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.16](https://github.com/zone-eu/mailsplit/compare/v5.4.15...v5.4.16) (2026-08-31)
+
+
+### Bug Fixes
+
+* **deps:** update libmime to 5.4.3 for the CP932 extended areas ([a45c2c8](https://github.com/zone-eu/mailsplit/commit/a45c2c80d2c83517a64b78869d5abebcbc1825be))
+
 ## [5.4.15](https://github.com/zone-eu/mailsplit/compare/v5.4.14...v5.4.15) (2026-08-07)
 
 
