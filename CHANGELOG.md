@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.19](https://github.com/zone-eu/mailsplit/compare/v5.4.18...v5.4.19) (2026-09-28)
+
+
+### Bug Fixes
+
+* **deps:** update libmime to 5.4.6 ([a96f162](https://github.com/zone-eu/mailsplit/commit/a96f162f80291f869f2ea713414afbd86cc83738))
+
 ## [5.4.18](https://github.com/zone-eu/mailsplit/compare/v5.4.17...v5.4.18) (2026-09-28)
 
 
