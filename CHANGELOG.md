@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.18](https://github.com/zone-eu/mailsplit/compare/v5.4.17...v5.4.18) (2026-09-28)
+
+
+### Bug Fixes
+
+* linear-time header parsing and encoding checks, batched line processing, single flowed decode ([43c31c0](https://github.com/zone-eu/mailsplit/commit/43c31c0d6e12b43857096ae789a96ff2a81867ca))
+
 ## [5.4.17](https://github.com/zone-eu/mailsplit/compare/v5.4.16...v5.4.17) (2026-09-15)
 
 
