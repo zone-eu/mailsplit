@@ -1,6 +1,7 @@
 'use strict';
 
 let Headers = require('../lib/headers');
+let assertLinear = require('./helpers/assert-linear');
 
 // Parses a built header block back and returns its keys, so that a test can compare what
 // build() emits against what the parser reports.
@@ -329,4 +330,34 @@ module.exports['Strip injected header lines from a Buffer header line'] = test =
     test.equal(built, 'X-Test: valueBcc: attacker@example.com\r\n\r\n');
     test.ok(!headers.hasHeader('bcc'));
     test.done();
+};
+
+module.exports['Keep a large folded header block byte exact and parse it'] = test => {
+    let raw = 'From sender@example.com Mon Jan  1 00:00:00 2024\r\nSubject: first\r\n\tsecond\r\n third\r\nX-A: a\r\nX-B: b\r\n  folded\r\n\r\n';
+    let headers = new Headers(Buffer.from(raw, 'binary'));
+    test.deepEqual(headers.getList(), [
+        { key: 'subject', line: 'Subject: first\r\n\tsecond\r\n third' },
+        { key: 'x-a', line: 'X-A: a' },
+        { key: 'x-b', line: 'X-B: b\r\n  folded' }
+    ]);
+    test.equal(headers.mbox, 'From sender@example.com Mon Jan  1 00:00:00 2024');
+    test.equal(headers.build().toString('binary'), raw);
+
+    // rebuilding from the parsed lines keeps every fold
+    headers.remove('X-A');
+    test.equal(headers.build().toString('binary'), raw.replace('X-A: a\r\n', ''));
+    test.done();
+};
+
+module.exports['Unfold header continuation lines in linear time'] = test => {
+    let run = pairs => {
+        let raw = Buffer.from('X-A: a\r\n b\r\n'.repeat(pairs) + '\r\n');
+        let headers = new Headers(raw);
+        test.equal(headers.getList().length, pairs);
+        test.ok(headers.build().equals(raw));
+    };
+    // unfolding with splice took 0.1 s -> 1.2 s here
+    assertLinear(test, run, 10 * 1000)
+        .catch(err => test.ifError(err))
+        .then(() => test.done());
 };

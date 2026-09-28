@@ -41,9 +41,6 @@ export interface ChunkedPassthroughOptions {
 export interface FlowedDecoderOptions extends LibmimeOptions {
     /** Whether format=flowed uses RFC 3676 `DelSp=yes` space deletion semantics. */
     delSp?: boolean;
-
-    /** Source Content-Transfer-Encoding hint used during format=flowed handling. */
-    encoding?: string | false;
 }
 
 /** Parsed raw header line with a normalized lookup key. */

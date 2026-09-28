@@ -1267,3 +1267,51 @@ module.exports['Keep parsing siblings after a nested inline message closes'] = t
         ['multipart/mixed', 'message/rfc822', 'message/rfc822', 'text/plain', 'application/octet-stream']
     );
 };
+
+module.exports['Split line-dense input without a setImmediate per line'] = test => {
+    // A setImmediate per line is linear too, only slow (about 13 us a line), so a timing ratio
+    // cannot tell it apart. Count event loop turns instead: a ticker rescheduling itself with
+    // setImmediate runs once per turn, which was once per line before lines were batched.
+    let lines = 100 * 1000;
+    let ticks = 0;
+    let running = true;
+    let tick = () => {
+        if (running) {
+            ticks++;
+            setImmediate(tick);
+        }
+    };
+    setImmediate(tick);
+
+    let splitter = new MessageSplitter();
+    let bodyLength = 0;
+    splitter.on('data', data => {
+        if (data.type === 'body') {
+            bodyLength += data.value.length;
+        }
+    });
+    splitter.on('end', () => {
+        running = false;
+        test.equal(bodyLength, lines);
+        test.ok(ticks < lines / 100, `${ticks} event loop turns for ${lines} lines`);
+        test.done();
+    });
+    splitter.end(Buffer.from('Subject: test\r\n\r\n' + '\n'.repeat(lines)));
+};
+
+module.exports['Yield to the event loop while splitting a large chunk'] = test => {
+    let splitter = new MessageSplitter();
+    let ticks = 0;
+    let timer = setInterval(() => ticks++, 0);
+    let chunks = 0;
+    splitter.on('data', () => chunks++);
+    splitter.on('end', () => {
+        clearInterval(timer);
+        // lines are split in batches, not all at once
+        test.ok(chunks > 0);
+        test.ok(ticks > 0, 'timers ran while a single large chunk was being split');
+        test.done();
+    });
+    let line = 'x'.repeat(75) + '\r\n';
+    splitter.end(Buffer.from('Subject: test\r\n\r\n' + line.repeat(50 * 1000)));
+};

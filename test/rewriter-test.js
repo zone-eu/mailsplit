@@ -258,3 +258,37 @@ module.exports['Recreate message with large image one byte at a time'] = test =>
 
     test.expect(1);
 };
+
+module.exports['Decode a base64 format=flowed text node once'] = test => {
+    let splitter = new Splitter();
+    let joiner = new Joiner();
+
+    let text = 'Hello flowed \r\nworld\r\n';
+    let message =
+        'Content-Type: text/plain; charset=utf-8; format=flowed\r\n' +
+        'Content-Transfer-Encoding: base64\r\n' +
+        '\r\n' +
+        Buffer.from(text).toString('base64') +
+        '\r\n';
+
+    let seen;
+    let rewriter = new Rewriter(node => node.contentType === 'text/plain');
+    rewriter.on('node', data => {
+        let chunks = [];
+        data.decoder.on('data', chunk => chunks.push(chunk));
+        data.decoder.on('end', () => {
+            seen = Buffer.concat(chunks).toString();
+            data.encoder.end(Buffer.from(seen));
+        });
+    });
+
+    let output = [];
+    splitter.pipe(rewriter).pipe(joiner);
+    joiner.on('data', chunk => output.push(chunk));
+    joiner.on('end', () => {
+        test.equal(seen, 'Hello flowed world');
+        test.ok(Buffer.concat(output).toString().includes(Buffer.from(seen).toString('base64')));
+        test.done();
+    });
+    splitter.end(Buffer.from(message));
+};

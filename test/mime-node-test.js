@@ -1,6 +1,7 @@
 'use strict';
 
 let MimeNode = require('../lib/mime-node');
+let assertLinear = require('./helpers/assert-linear');
 
 module.exports['Add and parse headers'] = test => {
     let mimeNode = new MimeNode();
@@ -196,4 +197,36 @@ module.exports['Remove character set'] = test => {
     mimeNode.setCharset('ascii');
     test.equal(mimeNode.getHeaders().toString(), 'Content-Type: text/plain\r\nSubject: test\r\n\r\n');
     test.done();
+};
+
+module.exports['Strip comments from Content-Transfer-Encoding'] = test => {
+    let values = ['base64', 'base64 (comment)', '(comment) Base64', 'quoted-printable (a) x (b)', 'base64 (unclosed', 'base64 ) (', '7bit ()'];
+    for (let value of values) {
+        let mimeNode = new MimeNode();
+        mimeNode.addHeaderChunk(Buffer.from('Content-Transfer-Encoding: ' + value + '\r\n\r\n'));
+        mimeNode.parseHeaders();
+        // same result as the regex this replaced
+        test.equal(
+            mimeNode.encoding,
+            value
+                .replace(/\(.*\)/g, '')
+                .toLowerCase()
+                .trim(),
+            value
+        );
+    }
+    test.done();
+};
+
+module.exports['Parse Content-Transfer-Encoding with many comment openers in linear time'] = test => {
+    let run = size => {
+        let mimeNode = new MimeNode();
+        mimeNode.addHeaderChunk(Buffer.from('Content-Transfer-Encoding: base64 ' + '('.repeat(size) + '\r\n\r\n'));
+        mimeNode.parseHeaders();
+        test.equal(mimeNode.encoding, 'base64 ' + '('.repeat(size));
+    };
+    // the backtracking regex took 0.05 s -> 0.7 s here
+    assertLinear(test, run, 10 * 1000)
+        .catch(err => test.ifError(err))
+        .then(() => test.done());
 };
