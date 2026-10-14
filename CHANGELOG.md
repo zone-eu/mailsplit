@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.21](https://github.com/zone-eu/mailsplit/compare/v5.4.20...v5.4.21) (2026-10-14)
+
+
+### Bug Fixes
+
+* **deps:** update libmime to 5.4.8 and libbase64 to 1.3.3 ([f6dbe08](https://github.com/zone-eu/mailsplit/commit/f6dbe088fb0f4fb4be20c96a1b0b24044d019336))
+
 ## [5.4.20](https://github.com/zone-eu/mailsplit/compare/v5.4.19...v5.4.20) (2026-10-04)
 
 
