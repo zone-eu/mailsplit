@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.22](https://github.com/zone-eu/mailsplit/compare/v5.4.21...v5.4.22) (2026-10-16)
+
+
+### Bug Fixes
+
+* close unterminated nested multiparts on an ancestor boundary and parse keyless header blocks in linear time ([f16d61f](https://github.com/zone-eu/mailsplit/commit/f16d61f5a29bbe003cd398c34f06504c308aa463))
+
 ## [5.4.21](https://github.com/zone-eu/mailsplit/compare/v5.4.20...v5.4.21) (2026-10-14)
 
 
