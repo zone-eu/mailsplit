@@ -361,3 +361,27 @@ module.exports['Unfold header continuation lines in linear time'] = test => {
         .catch(err => test.ifError(err))
         .then(() => test.done());
 };
+
+module.exports['Find the key of a header line without a colon in linear time'] = test => {
+    let run = lines => {
+        // a line with no colon keeps looking for its key in every continuation line
+        let raw = Buffer.from('Subject: a\r\nX\r\n' + ' y\r\n'.repeat(lines) + '\r\n');
+        let headers = new Headers(raw);
+        let list = headers.getList();
+        test.equal(list.length, 2);
+        test.equal(list[1].key, '');
+        test.ok(headers.build().equals(raw));
+    };
+    // searching the whole accumulated line for every continuation took 0.4 s -> 7 s here
+    assertLinear(test, run, 50 * 1000)
+        .catch(err => test.ifError(err))
+        .then(() => {
+            // the key may still come from a later continuation line
+            let headers = new Headers(Buffer.from('X\r\n y\r\n Z-Key: v\r\n more\r\nTo: b\r\n\r\n'));
+            test.deepEqual(headers.getList(), [
+                { key: 'x\r\n y\r\n z-key', line: 'X\r\n y\r\n Z-Key: v\r\n more' },
+                { key: 'to', line: 'To: b' }
+            ]);
+            test.done();
+        });
+};

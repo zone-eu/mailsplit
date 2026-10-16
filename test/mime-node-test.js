@@ -230,3 +230,24 @@ module.exports['Parse Content-Transfer-Encoding with many comment openers in lin
         .catch(err => test.ifError(err))
         .then(() => test.done());
 };
+
+module.exports['Do not decode an RFC 2231 filename a second time'] = test => {
+    // each value spells out an encoded word once decoded. libmime decodes the RFC 2231
+    // form itself, so a second pass would turn the result into "invoice.exe"
+    let cases = [
+        ["Content-Disposition: attachment; filename*=utf-8''invoice%3D%3Futf-8%3FQ%3F%3D2Eexe%3F%3D\r\n\r\n", 'invoice=?utf-8?Q?=2Eexe?='],
+        ["Content-Disposition: attachment;\r\n filename*0*=utf-8''invoice%3D%3Futf-8;\r\n filename*1*=%3FQ%3F%3D2Eexe%3F%3D\r\n\r\n", 'invoice=?utf-8?Q?=2Eexe?='],
+        ["Content-Type: application/pdf; name*=utf-8''invoice%3D%3Futf-8%3FQ%3F%3D2Eexe%3F%3D\r\n\r\n", 'invoice=?utf-8?Q?=2Eexe?='],
+        // a plain parameter is still decoded, and a quoted value can not hide the RFC 2231 form in it
+        ['Content-Disposition: attachment; filename="=?utf-8?Q?invoice=2Etxt?="\r\n\r\n', 'invoice.txt'],
+        ['Content-Type: application/pdf; name="=?utf-8?Q?invoice=2Epdf?="\r\n\r\n', 'invoice.pdf'],
+        ['Content-Disposition: attachment; filename="=?utf-8?Q?a=2Etxt?=; filename*=x"\r\n\r\n', 'a.txt; filename*=x']
+    ];
+    for (let [header, filename] of cases) {
+        let mimeNode = new MimeNode();
+        mimeNode.addHeaderChunk(Buffer.from(header));
+        mimeNode.parseHeaders();
+        test.equal(mimeNode.filename, filename, header);
+    }
+    test.done();
+};

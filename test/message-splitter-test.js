@@ -1315,3 +1315,55 @@ module.exports['Yield to the event loop while splitting a large chunk'] = test =
     let line = 'x'.repeat(75) + '\r\n';
     splitter.end(Buffer.from('Subject: test\r\n\r\n' + line.repeat(50 * 1000)));
 };
+
+module.exports['Close unterminated nested multiparts on an outer boundary'] = test => {
+    // neither the innermost nor the middle multipart is closed before the outer delimiter.
+    // The attachment after it is a part of the outer multipart, as other parsers and mail
+    // clients read it, not body text of the text/plain part
+    testStructure(
+        test,
+        'Content-Type: multipart/mixed; boundary=b1\r\n' +
+            '\r\n' +
+            '--b1\r\n' +
+            'Content-Type: multipart/alternative; boundary=b2\r\n' +
+            '\r\n' +
+            '--b2\r\n' +
+            'Content-Type: multipart/related; boundary=b3\r\n' +
+            '\r\n' +
+            '--b3\r\n' +
+            'Content-Type: text/plain\r\n' +
+            '\r\n' +
+            'Hello\r\n' +
+            '--b1\r\n' +
+            'Content-Type: application/pdf; name=hidden.pdf\r\n' +
+            'Content-Disposition: attachment; filename=hidden.pdf\r\n' +
+            '\r\n' +
+            'JVBERi0=\r\n' +
+            '--b1--\r\n',
+        ['multipart/mixed', 'multipart/alternative', 'multipart/related', 'text/plain', 'application/pdf'],
+        2,
+        single => {
+            test.deepEqual(single.content, [
+                { contentType: 'multipart/mixed', value: '' },
+                { contentType: 'multipart/alternative', value: '' },
+                { contentType: 'multipart/related', value: '' },
+                { contentType: 'text/plain', value: 'Hello' },
+                { contentType: 'application/pdf', value: 'JVBERi0=' }
+            ]);
+
+            // the attachment is numbered as the second part of the outer multipart
+            let splitter = new MessageSplitter();
+            let partNumbers = [];
+            splitter.on('data', data => {
+                if (data.type === 'node') {
+                    partNumbers.push([data.contentType, data.partNr.join('.'), data.parentNode ? data.parentNode.contentType : null]);
+                }
+            });
+            splitter.on('end', () => {
+                test.deepEqual(partNumbers[4], ['application/pdf', '2', 'multipart/mixed']);
+                test.done();
+            });
+            splitter.end(Buffer.from(single.raw, 'binary'));
+        }
+    );
+};
