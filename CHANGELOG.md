@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.23](https://github.com/zone-eu/mailsplit/compare/v5.4.22...v5.4.23) (2026-10-16)
+
+
+### Bug Fixes
+
+* bump libqp to 2.1.3 and libmime to 5.4.9 ([d3d3ef9](https://github.com/zone-eu/mailsplit/commit/d3d3ef941efcb5fb05e9d7d8b804b31bc263ad2b))
+
 ## [5.4.22](https://github.com/zone-eu/mailsplit/compare/v5.4.21...v5.4.22) (2026-10-16)
 
 
