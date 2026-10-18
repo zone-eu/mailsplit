@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.25](https://github.com/zone-eu/mailsplit/compare/v5.4.24...v5.4.25) (2026-10-18)
+
+
+### Bug Fixes
+
+* count a header line for at least 64 bytes of maxHeadSize and release the raw lines once parsed ([55af1a5](https://github.com/zone-eu/mailsplit/commit/55af1a5bb54491719ba4f7a137509bc35cd05a01))
+
 ## [5.4.24](https://github.com/zone-eu/mailsplit/compare/v5.4.23...v5.4.24) (2026-10-18)
 
 
