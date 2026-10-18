@@ -362,6 +362,25 @@ module.exports['Unfold header continuation lines in linear time'] = test => {
         .then(() => test.done());
 };
 
+module.exports['Strip trailing line breaks in linear time'] = test => {
+    let run = count => {
+        // a header line made of carriage returns, followed by more headers. A lone CR
+        // is not a line break for the parser, so the line is kept as it is
+        let line = 'X-A: ' + '\r'.repeat(count);
+        let raw = Buffer.from(line + '\r\nX-B: b\r\n\r\n', 'binary');
+        let headers = new Headers(raw);
+        test.deepEqual(headers.getList(), [
+            { key: 'x-a', line },
+            { key: 'x-b', line: 'X-B: b' }
+        ]);
+        test.ok(headers.build().equals(raw));
+    };
+    // the regex that stripped the trailing line breaks took 0.6 s -> 10 s here
+    assertLinear(test, run, 40 * 1000)
+        .catch(err => test.ifError(err))
+        .then(() => test.done());
+};
+
 module.exports['Find the key of a header line without a colon in linear time'] = test => {
     let run = lines => {
         // a line with no colon keeps looking for its key in every continuation line
