@@ -1144,6 +1144,22 @@ module.exports['Handle a closing delimiter without a parent multipart'] = test =
     testStructure(test, 'Subject: t\r\nContent-Type: text/plain\r\n\r\nbody\r\n--NOPE--\r\n', ['text/plain']);
 };
 
+module.exports['Count a header line for at least 64 bytes'] = test => {
+    // a parsed line costs a fixed overhead on top of its bytes, so every line is charged
+    // the floor: 20 one byte lines are 60 bytes on the wire and 1280 against the limit
+    let message = 'Subject: t\r\n' + 'a\r\n'.repeat(20) + '\r\nbody\r\n';
+
+    test.expect(3);
+    splitInChunks(message, 4096, { maxHeadSize: 1000 }, err => {
+        test.equal(err && err.code, 'EMAXLEN');
+        splitInChunks(message, 4096, { maxHeadSize: 1400 }, (err2, result) => {
+            test.ifError(err2);
+            test.deepEqual(result.nodes, ['text/plain']);
+            test.done();
+        });
+    });
+};
+
 module.exports['Fail on too many child nodes'] = test => {
     let message = 'Content-Type: multipart/mixed; boundary=B\r\n\r\n';
     for (let i = 0; i < 12; i++) {

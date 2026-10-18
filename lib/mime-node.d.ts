@@ -23,6 +23,7 @@ declare class MimeNode implements MimeNodeShape {
 
     /** Length, in bytes, of the raw header block collected for this node. */
     _headerlen: number;
+    _headerCost: number;
 
     /** Multipart subtype such as `mixed` or `alternative`, or `false` for leaf nodes. */
     multipart: string | false;
@@ -88,7 +89,9 @@ declare class MimeNode implements MimeNodeShape {
      * @param line Raw header line bytes; falsy values are ignored.
      * @returns Nothing.
      */
-    addHeaderChunk(line?: Buffer | false): void;
+    addHeaderChunk(line?: Buffer | false): boolean;
+    /** What the header lines count for against maxHeadSize, every line at least 64 bytes */
+    headerCost(extra?: number): number;
 
     /**
      * Parses collected header bytes and populates MIME metadata fields.

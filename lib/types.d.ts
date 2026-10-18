@@ -83,6 +83,8 @@ export interface MimeNode {
 
     /** Length, in bytes, of the raw header block collected for this node. */
     _headerlen: number;
+    _headerCost: number;
+    headerCost(extra?: number): number;
 
     /** Multipart subtype such as `mixed` or `alternative`, or `false` for leaf nodes. */
     multipart: string | false;
@@ -140,7 +142,7 @@ export interface MimeNode {
      * @param line Raw header line bytes; falsy values are ignored.
      * @returns Nothing.
      */
-    addHeaderChunk(line?: Buffer | false): void;
+    addHeaderChunk(line?: Buffer | false): boolean;
 
     /**
      * Parses collected header bytes and populates MIME metadata fields.
