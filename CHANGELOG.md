@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.24](https://github.com/zone-eu/mailsplit/compare/v5.4.23...v5.4.24) (2026-10-18)
+
+
+### Bug Fixes
+
+* strip the trailing line breaks of a header block in linear time ([3af719a](https://github.com/zone-eu/mailsplit/commit/3af719a2ef1c425e78edc1019cfced12d595a7d5))
+
 ## [5.4.23](https://github.com/zone-eu/mailsplit/compare/v5.4.22...v5.4.23) (2026-10-16)
 
 
