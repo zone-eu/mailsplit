@@ -6,6 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm test                  # run the full suite (node --test test/*-test.js)
+npm run test:cjs          # the suite with require(esm) disabled (see Platform constraints)
 npm run test:coverage     # the suite under c8
 npm run lint              # npm run typecheck && eslint .
 npm run lint:fix          # eslint . --fix
@@ -28,12 +29,21 @@ Benchmarks are not wired into npm scripts: `cd bench && ./bench.sh` (needs the `
 
 ## Critical constraints
 
-- **CommonJS only, never ESM.** The package is consumed by EmailEngine, which is bundled into standalone binaries with `pkg`, so this package and its dependencies must stay CommonJS. All source uses `require`/`module.exports` with a global `'use strict'`.
+- **CommonJS only, never ESM.** All source uses `require`/`module.exports` with a global `'use strict'`. See Platform constraints below.
 - **Untrusted input.** Everything here parses arbitrary mail from the network. Parsing must stay linear in the input size (several past fixes replaced backtracking regexes and quadratic splices, each pinned by an `assert-linear` test) and memory must stay bounded (`maxHeadSize`, `MAX_CHILD_NODES`, the pending-line limits in `lib/message-splitter.js`). Boundary handling is security sensitive: a closing boundary must end its multipart, so that content after it can not be smuggled in as a node. See `SECURITY.md`.
 - **Round trip fidelity.** Splitting and joining an unmodified message must reproduce the original bytes exactly. Many tests assert this, at several write chunk sizes, so parsing must never depend on where the writes happen to fall.
 - **Types are hand-written.** `index.d.ts`, `lib/*.d.ts` and `lib/types.d.ts` are maintained by hand and shipped; `tsconfig.json` only type-checks the JS against them (`checkJs`, `noEmit`). Update the declarations when changing a public signature.
 - **Releases are automated via release-please** (`release-please-config.json`, `.github/workflows/release.yaml`, npm trusted publishing). Do not bump `version` or edit `CHANGELOG.md` by hand.
 - **ESLint uses the shared flat config** (`eslint.config.js`, ESLint 10), the CommonJS template shared across the Postal Systems / Nodemailer packages. Keep it identical to the other repos except for the "Repo-specific" block at the end. CI (`.github/workflows/test.yml`) runs lint (including the type check), `format:check` and the tests on Node 20, 22 and 24.
+
+## Platform constraints
+
+Both rules come from EmailEngine, which ships as a `@yao-pkg/pkg` binary: pkg snapshots a CommonJS module graph and cannot load ES modules.
+
+- **Node.js 20 is the minimum supported version.** Runtime code, tests and tooling must work on Node 20, 22 and 24 (`engines.node` is `>=20.0.0`).
+- **Everything that reaches runtime must be genuinely CommonJS-loadable.** `require()` of this package and of every runtime dependency, transitive ones included, must work with `--no-experimental-require-module`. Node 22+ (and 20.19) can `require()` an ES module by default, which hides an ESM-only dependency until the pkg binary fails. A CommonJS entry that only wraps a dynamic `import()` does not count. (The `import(...)` occurrences in `lib/` are JSDoc type references, not runtime imports.)
+- **Check:** `npm run test:cjs` runs the whole suite with `NODE_OPTIONS=--no-experimental-require-module`. Run it after `npm run update` or any dependency change; CI runs it on Node 22 and 24.
+- Never add or upgrade to an ESM-only dependency. When a dependency's next major is ESM-only or needs more than Node 20, pin the last working major in `.ncurc.js` (`reject`, or a `target` of `minor`/`patch`) with a comment giving the reason.
 
 ## Architecture
 
