@@ -12,6 +12,7 @@
     },
     "scripts": {
         "test": "node --test test/*-test.js",
+        "test:cjs": "NODE_OPTIONS=--no-experimental-require-module npm test",
         "test:coverage": "c8 npm test",
         "lint": "npm run typecheck && eslint .",
         "lint:fix": "eslint . --fix",

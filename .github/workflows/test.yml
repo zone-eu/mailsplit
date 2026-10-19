@@ -29,3 +29,8 @@ jobs:
             - run: npm run lint
             - run: npm run format:check
             - run: npm test
+            # pkg snapshots a CommonJS module graph, and Node 22+ hides an ESM-only dependency
+            # behind require(esm). Rerun the suite with that switched off so one fails here.
+            - name: Run tests with require(esm) disabled
+              if: matrix.node != '20.x'
+              run: npm run test:cjs
