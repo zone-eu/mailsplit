@@ -1,12 +1,14 @@
 'use strict';
 
+const { test } = require('node:test');
+
 const Rewriter = require('../lib/node-streamer');
 const Splitter = require('../lib/message-splitter');
 const Joiner = require('../lib/message-joiner');
 const fs = require('fs');
 const crypto = require('crypto');
 
-module.exports['Extract image from message stream'] = test => {
+test('Extract image from message stream', (t, done) => {
     let splitter = new Splitter();
     let joiner = new Joiner();
     let msgHash = crypto.createHash('md5');
@@ -32,15 +34,15 @@ module.exports['Extract image from message stream'] = test => {
         msgHash.update(chunk);
     });
     output.on('end', () => {
-        test.equal(msgHash.digest('hex'), '3a5fa4280a54ebfc3ee956fb202a04ea');
-        test.equal(imgHash.digest('hex'), '393b91601d78359c99b5b667c2d5dda8');
+        t.assert.strictEqual(msgHash.digest('hex'), '3a5fa4280a54ebfc3ee956fb202a04ea');
+        t.assert.strictEqual(imgHash.digest('hex'), '393b91601d78359c99b5b667c2d5dda8');
 
-        test.done();
+        done();
     });
-    test.expect(2);
-};
+    t.plan(2);
+});
 
-module.exports['Extract image from message stream and return immediatelly'] = test => {
+test('Extract image from message stream and return immediatelly', (t, done) => {
     let splitter = new Splitter();
     let joiner = new Joiner();
     let msgHash = crypto.createHash('md5');
@@ -67,10 +69,10 @@ module.exports['Extract image from message stream and return immediatelly'] = te
         msgHash.update(chunk);
     });
     output.on('end', () => {
-        test.equal(msgHash.digest('hex'), '3a5fa4280a54ebfc3ee956fb202a04ea');
-        test.equal(imgHash.digest('hex'), '393b91601d78359c99b5b667c2d5dda8');
+        t.assert.strictEqual(msgHash.digest('hex'), '3a5fa4280a54ebfc3ee956fb202a04ea');
+        t.assert.strictEqual(imgHash.digest('hex'), '393b91601d78359c99b5b667c2d5dda8');
 
-        test.done();
+        done();
     });
-    test.expect(2);
-};
+    t.plan(2);
+});

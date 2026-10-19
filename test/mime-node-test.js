@@ -1,9 +1,11 @@
 'use strict';
 
+const { test } = require('node:test');
+
 let MimeNode = require('../lib/mime-node');
 let assertLinear = require('./helpers/assert-linear');
 
-module.exports['Add and parse headers'] = test => {
+test('Add and parse headers', (t, done) => {
     let mimeNode = new MimeNode();
 
     mimeNode.addHeaderChunk(Buffer.from('Subject: test\r\n'));
@@ -13,12 +15,12 @@ module.exports['Add and parse headers'] = test => {
 
     mimeNode.parseHeaders();
 
-    test.equal(mimeNode.getHeaders().toString(), 'Subject: test\r\n jne\r\nX-Mailer: 12345\r\n\r\n');
+    t.assert.strictEqual(mimeNode.getHeaders().toString(), 'Subject: test\r\n jne\r\nX-Mailer: 12345\r\n\r\n');
 
-    test.done();
-};
+    done();
+});
 
-module.exports['Update Content-Type'] = test => {
+test('Update Content-Type', (t, done) => {
     let mimeNode = new MimeNode();
 
     mimeNode.addHeaderChunk(Buffer.from('Subject: test\r\n'));
@@ -32,12 +34,12 @@ module.exports['Update Content-Type'] = test => {
 
     mimeNode.setContentType('image/png');
 
-    test.equal(mimeNode.getHeaders().toString(), 'Subject: test\r\n jne\r\nContent-Type: image/png; boundary=abc\r\nX-Mailer: 12345\r\n\r\n');
+    t.assert.strictEqual(mimeNode.getHeaders().toString(), 'Subject: test\r\n jne\r\nContent-Type: image/png; boundary=abc\r\nX-Mailer: 12345\r\n\r\n');
 
-    test.done();
-};
+    done();
+});
 
-module.exports['Get filename from Content-Type'] = test => {
+test('Get filename from Content-Type', (t, done) => {
     let mimeNode = new MimeNode();
 
     mimeNode.addHeaderChunk(
@@ -47,12 +49,12 @@ module.exports['Get filename from Content-Type'] = test => {
     );
 
     mimeNode.parseHeaders();
-    test.equal(mimeNode.disposition, false);
-    test.equal(mimeNode.filename, 'ÕÄÖÜ');
-    test.done();
-};
+    t.assert.strictEqual(mimeNode.disposition, false);
+    t.assert.strictEqual(mimeNode.filename, 'ÕÄÖÜ');
+    done();
+});
 
-module.exports['Get split filename from Content-Type'] = test => {
+test('Get split filename from Content-Type', (t, done) => {
     let mimeNode = new MimeNode();
 
     mimeNode.addHeaderChunk(
@@ -65,11 +67,11 @@ module.exports['Get split filename from Content-Type'] = test => {
     );
 
     mimeNode.parseHeaders();
-    test.equal(mimeNode.filename, 'ÕÄÖÜ');
-    test.done();
-};
+    t.assert.strictEqual(mimeNode.filename, 'ÕÄÖÜ');
+    done();
+});
 
-module.exports['Get filename from Content-Disposition'] = test => {
+test('Get filename from Content-Disposition', (t, done) => {
     let mimeNode = new MimeNode();
 
     mimeNode.addHeaderChunk(
@@ -77,12 +79,12 @@ module.exports['Get filename from Content-Disposition'] = test => {
     );
 
     mimeNode.parseHeaders();
-    test.equal(mimeNode.disposition, 'inline');
-    test.equal(mimeNode.filename, 'ÕÄÖÜ');
-    test.done();
-};
+    t.assert.strictEqual(mimeNode.disposition, 'inline');
+    t.assert.strictEqual(mimeNode.filename, 'ÕÄÖÜ');
+    done();
+});
 
-module.exports['Get split filename from Content-Disposition'] = test => {
+test('Get split filename from Content-Disposition', (t, done) => {
     let mimeNode = new MimeNode();
 
     mimeNode.addHeaderChunk(
@@ -95,12 +97,12 @@ module.exports['Get split filename from Content-Disposition'] = test => {
     );
 
     mimeNode.parseHeaders();
-    test.equal(mimeNode.disposition, 'attachment');
-    test.equal(mimeNode.filename, 'ÕÄÖÜ');
-    test.done();
-};
+    t.assert.strictEqual(mimeNode.disposition, 'attachment');
+    t.assert.strictEqual(mimeNode.filename, 'ÕÄÖÜ');
+    done();
+});
 
-module.exports['Set filename'] = test => {
+test('Set filename', (t, done) => {
     let mimeNode = new MimeNode();
 
     mimeNode.addHeaderChunk(
@@ -116,15 +118,15 @@ module.exports['Set filename'] = test => {
 
     mimeNode.setFilename('jõgeva.txt');
 
-    test.equal(
+    t.assert.strictEqual(
         mimeNode.getHeaders().toString(),
         "Content-Disposition: attachment; filename*0*=utf-8''j%C3%B5geva.txt\r\nContent-Transfer-Encoding: QUOTED-PRINTABLE\r\n\r\n"
     );
 
-    test.done();
-};
+    done();
+});
 
-module.exports['Delete filename'] = test => {
+test('Delete filename', (t, done) => {
     let mimeNode = new MimeNode();
 
     mimeNode.addHeaderChunk(
@@ -139,11 +141,11 @@ module.exports['Delete filename'] = test => {
     mimeNode.parseHeaders();
 
     mimeNode.setFilename(false);
-    test.equal(mimeNode.getHeaders().toString(), 'Content-Disposition: attachment\r\nContent-Transfer-Encoding: QUOTED-PRINTABLE\r\n\r\n');
-    test.done();
-};
+    t.assert.strictEqual(mimeNode.getHeaders().toString(), 'Content-Disposition: attachment\r\nContent-Transfer-Encoding: QUOTED-PRINTABLE\r\n\r\n');
+    done();
+});
 
-module.exports['Update existing filename'] = test => {
+test('Update existing filename', (t, done) => {
     let mimeNode = new MimeNode();
 
     mimeNode.addHeaderChunk(Buffer.from('Subject: test\r\n'));
@@ -156,14 +158,14 @@ module.exports['Update existing filename'] = test => {
     mimeNode.parseHeaders();
 
     mimeNode.setFilename('jõgeva.txt');
-    test.equal(
+    t.assert.strictEqual(
         mimeNode.getHeaders().toString(),
         'Content-Disposition: attachment; filename*0*=utf-8\'\'j%C3%B5geva.txt\r\nSubject: test\r\n jne\r\nContent-Type: text/plain;\r\n boundary="abc"\r\nX-Mailer: 12345\r\n\r\n'
     );
-    test.done();
-};
+    done();
+});
 
-module.exports['Set character set'] = test => {
+test('Set character set', (t, done) => {
     let mimeNode = new MimeNode();
 
     mimeNode.addHeaderChunk(Buffer.from('Subject: test\r\n\r\n'));
@@ -171,11 +173,11 @@ module.exports['Set character set'] = test => {
     mimeNode.parseHeaders();
 
     mimeNode.setCharset('utf-8');
-    test.equal(mimeNode.getHeaders().toString(), 'Content-Type: text/plain; charset=utf-8\r\nSubject: test\r\n\r\n');
-    test.done();
-};
+    t.assert.strictEqual(mimeNode.getHeaders().toString(), 'Content-Type: text/plain; charset=utf-8\r\nSubject: test\r\n\r\n');
+    done();
+});
 
-module.exports['Update character set'] = test => {
+test('Update character set', (t, done) => {
     let mimeNode = new MimeNode();
 
     mimeNode.addHeaderChunk(Buffer.from('Content-Type: text/plain; charset=utf-8\r\nSubject: test\r\n\r\n'));
@@ -183,11 +185,11 @@ module.exports['Update character set'] = test => {
     mimeNode.parseHeaders();
 
     mimeNode.setCharset('ISO-8859-1');
-    test.equal(mimeNode.getHeaders().toString(), 'Content-Type: text/plain; charset=iso-8859-1\r\nSubject: test\r\n\r\n');
-    test.done();
-};
+    t.assert.strictEqual(mimeNode.getHeaders().toString(), 'Content-Type: text/plain; charset=iso-8859-1\r\nSubject: test\r\n\r\n');
+    done();
+});
 
-module.exports['Remove character set'] = test => {
+test('Remove character set', (t, done) => {
     let mimeNode = new MimeNode();
 
     mimeNode.addHeaderChunk(Buffer.from('Content-Type: text/plain; charset=utf-8\r\nSubject: test\r\n\r\n'));
@@ -195,18 +197,18 @@ module.exports['Remove character set'] = test => {
     mimeNode.parseHeaders();
 
     mimeNode.setCharset('ascii');
-    test.equal(mimeNode.getHeaders().toString(), 'Content-Type: text/plain\r\nSubject: test\r\n\r\n');
-    test.done();
-};
+    t.assert.strictEqual(mimeNode.getHeaders().toString(), 'Content-Type: text/plain\r\nSubject: test\r\n\r\n');
+    done();
+});
 
-module.exports['Strip comments from Content-Transfer-Encoding'] = test => {
+test('Strip comments from Content-Transfer-Encoding', (t, done) => {
     let values = ['base64', 'base64 (comment)', '(comment) Base64', 'quoted-printable (a) x (b)', 'base64 (unclosed', 'base64 ) (', '7bit ()'];
     for (let value of values) {
         let mimeNode = new MimeNode();
         mimeNode.addHeaderChunk(Buffer.from('Content-Transfer-Encoding: ' + value + '\r\n\r\n'));
         mimeNode.parseHeaders();
         // same result as the regex this replaced
-        test.equal(
+        t.assert.strictEqual(
             mimeNode.encoding,
             value
                 .replace(/\(.*\)/g, '')
@@ -215,23 +217,23 @@ module.exports['Strip comments from Content-Transfer-Encoding'] = test => {
             value
         );
     }
-    test.done();
-};
+    done();
+});
 
-module.exports['Parse Content-Transfer-Encoding with many comment openers in linear time'] = test => {
+test('Parse Content-Transfer-Encoding with many comment openers in linear time', (t, done) => {
     let run = size => {
         let mimeNode = new MimeNode();
         mimeNode.addHeaderChunk(Buffer.from('Content-Transfer-Encoding: base64 ' + '('.repeat(size) + '\r\n\r\n'));
         mimeNode.parseHeaders();
-        test.equal(mimeNode.encoding, 'base64 ' + '('.repeat(size));
+        t.assert.strictEqual(mimeNode.encoding, 'base64 ' + '('.repeat(size));
     };
     // the backtracking regex took 0.05 s -> 0.7 s here
-    assertLinear(test, run, 10 * 1000)
-        .catch(err => test.ifError(err))
-        .then(() => test.done());
-};
+    assertLinear(t, run, 10 * 1000)
+        .catch(err => t.assert.ifError(err))
+        .then(() => done());
+});
 
-module.exports['Do not decode an RFC 2231 filename a second time'] = test => {
+test('Do not decode an RFC 2231 filename a second time', (t, done) => {
     // each value spells out an encoded word once decoded. libmime decodes the RFC 2231
     // form itself, so a second pass would turn the result into "invoice.exe"
     let cases = [
@@ -247,7 +249,7 @@ module.exports['Do not decode an RFC 2231 filename a second time'] = test => {
         let mimeNode = new MimeNode();
         mimeNode.addHeaderChunk(Buffer.from(header));
         mimeNode.parseHeaders();
-        test.equal(mimeNode.filename, filename, header);
+        t.assert.strictEqual(mimeNode.filename, filename, header);
     }
-    test.done();
-};
+    done();
+});

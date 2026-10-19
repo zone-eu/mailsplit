@@ -22,9 +22,9 @@ const time = async (run, size) => {
     return best;
 };
 
-module.exports = async (test, run, small) => {
+module.exports = async (t, run, small) => {
     await run(Math.ceil(small / 10)); // warm up
     let smallMs = await time(run, small);
     let largeMs = await time(run, small * 4);
-    test.ok(largeMs <= smallMs * FACTOR + SLACK_MS, `quadrupling the input took ${smallMs.toFixed(1)} ms -> ${largeMs.toFixed(1)} ms`);
+    t.assert.ok(largeMs <= smallMs * FACTOR + SLACK_MS, `quadrupling the input took ${smallMs.toFixed(1)} ms -> ${largeMs.toFixed(1)} ms`);
 };

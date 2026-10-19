@@ -43,5 +43,5 @@ let processNext = () => {
     randomMessage.get(messagesRoot, (processed * 0x10000).toString(16)).pipe(stream);
 };
 
-console.log('Streaming %s random messages through a plain PassThrough', messages); // eslint-disable-line no-console
+console.log('Streaming %s random messages through a plain PassThrough', messages);
 processNext();

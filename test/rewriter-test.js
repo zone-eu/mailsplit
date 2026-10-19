@@ -1,5 +1,7 @@
 'use strict';
 
+const { test } = require('node:test');
+
 const Rewriter = require('../lib/node-rewriter');
 const Splitter = require('../lib/message-splitter');
 const Joiner = require('../lib/message-joiner');
@@ -7,7 +9,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const PassThrough = require('stream').PassThrough;
 
-module.exports['Recreate message and extract image'] = test => {
+test('Recreate message and extract image', (t, done) => {
     let splitter = new Splitter();
     let joiner = new Joiner();
     let msgHash = crypto.createHash('md5');
@@ -34,15 +36,15 @@ module.exports['Recreate message and extract image'] = test => {
         msgHash.update(chunk);
     });
     output.on('end', () => {
-        test.equal(msgHash.digest('hex'), 'da699eb48c1aa91088481f1bebc994f2');
-        test.equal(imgHash.digest('hex'), '393b91601d78359c99b5b667c2d5dda8');
+        t.assert.strictEqual(msgHash.digest('hex'), 'da699eb48c1aa91088481f1bebc994f2');
+        t.assert.strictEqual(imgHash.digest('hex'), '393b91601d78359c99b5b667c2d5dda8');
 
-        test.done();
+        done();
     });
-    test.expect(2);
-};
+    t.plan(2);
+});
 
-module.exports['Recreate message with updated format=flow text node'] = test => {
+test('Recreate message with updated format=flow text node', (t, done) => {
     let splitter = new Splitter();
     let joiner = new Joiner();
     let msgHash = crypto.createHash('md5');
@@ -74,15 +76,15 @@ module.exports['Recreate message with updated format=flow text node'] = test => 
     output.on('end', () => {
         msgHash = msgHash.digest('hex');
 
-        test.equal(msgHash, '2349fd8178018c7886ee47538bb5edbf');
+        t.assert.strictEqual(msgHash, '2349fd8178018c7886ee47538bb5edbf');
 
-        test.done();
+        done();
     });
 
-    test.expect(1);
-};
+    t.plan(1);
+});
 
-module.exports['Recreate message with large image very slowly'] = test => {
+test('Recreate message with large image very slowly', (t, done) => {
     let splitter = new Splitter();
     let joiner = new Joiner();
     let msgHash = crypto.createHash('md5');
@@ -140,15 +142,15 @@ module.exports['Recreate message with large image very slowly'] = test => {
     output.on('end', () => {
         msgHash = msgHash.digest('hex');
 
-        test.equal(msgHash, 'da699eb48c1aa91088481f1bebc994f2');
+        t.assert.strictEqual(msgHash, 'da699eb48c1aa91088481f1bebc994f2');
 
-        test.done();
+        done();
     });
 
-    test.expect(1);
-};
+    t.plan(1);
+});
 
-module.exports['Recreate message with large image one byte at a time'] = test => {
+test('Recreate message with large image one byte at a time', (t, done) => {
     let splitter = new Splitter();
     let joiner = new Joiner();
     let msgHash = crypto.createHash('md5');
@@ -251,15 +253,15 @@ module.exports['Recreate message with large image one byte at a time'] = test =>
     output.on('end', () => {
         msgHash = msgHash.digest('hex');
 
-        test.equal(msgHash, '1b23ab848c9c6d2edba86e1d5a50bbf2');
+        t.assert.strictEqual(msgHash, '1b23ab848c9c6d2edba86e1d5a50bbf2');
 
-        test.done();
+        done();
     });
 
-    test.expect(1);
-};
+    t.plan(1);
+});
 
-module.exports['Decode a base64 format=flowed text node once'] = test => {
+test('Decode a base64 format=flowed text node once', (t, done) => {
     let splitter = new Splitter();
     let joiner = new Joiner();
 
@@ -286,9 +288,9 @@ module.exports['Decode a base64 format=flowed text node once'] = test => {
     splitter.pipe(rewriter).pipe(joiner);
     joiner.on('data', chunk => output.push(chunk));
     joiner.on('end', () => {
-        test.equal(seen, 'Hello flowed world');
-        test.ok(Buffer.concat(output).toString().includes(Buffer.from(seen).toString('base64')));
-        test.done();
+        t.assert.strictEqual(seen, 'Hello flowed world');
+        t.assert.ok(Buffer.concat(output).toString().includes(Buffer.from(seen).toString('base64')));
+        done();
     });
     splitter.end(Buffer.from(message));
-};
+});

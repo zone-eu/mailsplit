@@ -1,8 +1,10 @@
 'use strict';
 
+const { test } = require('node:test');
+
 const MessageJoiner = require('../lib/message-joiner');
 
-module.exports['Join split message'] = test => {
+test('Join split message', (t, done) => {
     let joiner = new MessageJoiner();
     let s = '';
 
@@ -11,8 +13,8 @@ module.exports['Join split message'] = test => {
     });
 
     joiner.on('end', () => {
-        test.equal(s, 'Subject: test\r\nMIME-Version: 1.0\r\n\r\nHello world!');
-        test.done();
+        t.assert.strictEqual(s, 'Subject: test\r\nMIME-Version: 1.0\r\n\r\nHello world!');
+        done();
     });
 
     joiner.write({
@@ -29,4 +31,4 @@ module.exports['Join split message'] = test => {
         type: 'body',
         value: 'Hello world!'
     });
-};
+});

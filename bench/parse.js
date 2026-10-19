@@ -50,5 +50,5 @@ let processNext = () => {
         .pipe(joiner);
 };
 
-console.log('Streaming %s random messages through Splitter and Joiner', messages); // eslint-disable-line no-console
+console.log('Streaming %s random messages through Splitter and Joiner', messages);
 processNext();

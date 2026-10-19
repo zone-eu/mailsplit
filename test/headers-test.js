@@ -1,5 +1,7 @@
 'use strict';
 
+const { test } = require('node:test');
+
 let Headers = require('../lib/headers');
 let assertLinear = require('./helpers/assert-linear');
 
@@ -9,68 +11,68 @@ const keysOf = built => new Headers(Buffer.from(built, 'binary')).getList().map(
 
 // The header block ends exactly once, at the very end. An earlier empty line would demote
 // every header after it into the message body.
-const assertBlockNotClosedEarly = (test, built) => test.ok(!built.slice(0, -4).includes('\r\n\r\n'), 'the header block must not be closed early');
+const assertBlockNotClosedEarly = (t, built) => t.assert.ok(!built.slice(0, -4).includes('\r\n\r\n'), 'the header block must not be closed early');
 
-module.exports['Return original headers'] = test => {
+test('Return original headers', (t, done) => {
     let headerStr = 'Subject: test\nMIME-Version: 1.0\nMessage-ID: <abc@def>\n\n';
     let headers = new Headers(Buffer.from(headerStr));
-    test.equal(headers.build().toString(), headerStr);
-    test.done();
-};
+    t.assert.strictEqual(headers.build().toString(), headerStr);
+    done();
+});
 
-module.exports['Return modified headers'] = test => {
+test('Return modified headers', (t, done) => {
     let origHeaderStr = 'Subject: test\nMIME-Version: 1.0\nMessage-ID: <abc@def>\n\n';
     let generatedHeaderStr = 'Subject: test\r\nMIME-Version: 1.0\r\nMessage-ID: <abc@def>\r\n\r\n';
     let headers = new Headers(Buffer.from(origHeaderStr));
     headers._parseHeaders();
     headers.changed = true;
-    test.equal(headers.build().toString(), generatedHeaderStr);
-    test.done();
-};
+    t.assert.strictEqual(headers.build().toString(), generatedHeaderStr);
+    done();
+});
 
-module.exports['Return original MBOX headers'] = test => {
+test('Return original MBOX headers', (t, done) => {
     let headerStr = 'From MAILER-DAEMON Fri Jul  8 12:08:34 2011\nSubject: test\nMIME-Version: 1.0\nMessage-ID: <abc@def>\n\n';
     let headers = new Headers(Buffer.from(headerStr));
-    test.equal(headers.build().toString(), headerStr);
-    test.done();
-};
+    t.assert.strictEqual(headers.build().toString(), headerStr);
+    done();
+});
 
-module.exports['Return modified MBOX headers'] = test => {
+test('Return modified MBOX headers', (t, done) => {
     let origHeaderStr = 'From MAILER-DAEMON Fri Jul  8 12:08:34 2011\nSubject: test\nMIME-Version: 1.0\nMessage-ID: <abc@def>\n\n';
     let generatedHeaderStr = 'From MAILER-DAEMON Fri Jul  8 12:08:34 2011\r\nSubject: test\r\nMIME-Version: 1.0\r\nMessage-ID: <abc@def>\r\n\r\n';
     let headers = new Headers(Buffer.from(origHeaderStr));
     headers._parseHeaders();
     headers.changed = true;
-    test.equal(headers.build().toString(), generatedHeaderStr);
-    test.done();
-};
+    t.assert.strictEqual(headers.build().toString(), generatedHeaderStr);
+    done();
+});
 
-module.exports['Get specific headers'] = test => {
+test('Get specific headers', (t, done) => {
     let headerStr = 'Subject: test\nX-row: row1\nMIME-Version: 1.0\nX-Row: row2\nX-row: row3\nMessage-ID: <abc@def>\n\n';
     let headers = new Headers(Buffer.from(headerStr));
-    test.deepEqual(headers.get('x-row'), ['X-row: row1', 'X-Row: row2', 'X-row: row3']);
-    test.done();
-};
+    t.assert.deepStrictEqual(headers.get('x-row'), ['X-row: row1', 'X-Row: row2', 'X-row: row3']);
+    done();
+});
 
-module.exports['Get first header value'] = test => {
+test('Get first header value', (t, done) => {
     let headerStr = 'Subject: test\nX-row: row1\nMIME-Version: 1.0\nX-Row: row2\nX-row: row3\nMessage-ID: <abc@def>\n\n';
     let headers = new Headers(Buffer.from(headerStr));
-    test.equal(headers.getFirst('x-row'), 'row1');
-    test.done();
-};
+    t.assert.strictEqual(headers.getFirst('x-row'), 'row1');
+    done();
+});
 
-module.exports['Get header boolean if it exists'] = test => {
+test('Get header boolean if it exists', (t, done) => {
     let headerStr = 'Subject: test\nX-row: row1\nMIME-Version: 1.0\nX-Row: row2\nX-row: row3\nMessage-ID: <abc@def>\n\n';
     let headers = new Headers(Buffer.from(headerStr));
-    test.equal(headers.hasHeader('x-row'), true);
-    test.equal(headers.hasHeader('y-row'), false);
-    test.done();
-};
+    t.assert.strictEqual(headers.hasHeader('x-row'), true);
+    t.assert.strictEqual(headers.hasHeader('y-row'), false);
+    done();
+});
 
-module.exports['Get all rows'] = test => {
+test('Get all rows', (t, done) => {
     let headerStr = 'Subject: test\nX-row: row1\nMIME-Version: 1.0\nX-Row: row2\nX-row: row3\nMessage-ID: <abc@def>\n\n';
     let headers = new Headers(Buffer.from(headerStr));
-    test.deepEqual(headers.getList('x-row'), [
+    t.assert.deepStrictEqual(headers.getList('x-row'), [
         {
             key: 'subject',
             line: 'Subject: test'
@@ -96,114 +98,114 @@ module.exports['Get all rows'] = test => {
             line: 'Message-ID: <abc@def>'
         }
     ]);
-    test.done();
-};
+    done();
+});
 
-module.exports['Add new header'] = test => {
+test('Add new header', (t, done) => {
     let origHeaderStr = 'Subject: test\nMIME-Version: 1.0\nMessage-ID: <abc@def>\n\n';
     let generatedHeaderStr = 'X-Test: tere\r\nSubject: test\r\nMIME-Version: 1.0\r\nY-Test: foo\r\nMessage-ID: <abc@def>\r\n\r\n';
     let headers = new Headers(Buffer.from(origHeaderStr));
     headers.add('X-Test', 'tere');
     headers.add('Y-Test', 'foo', 3);
-    test.equal(
+    t.assert.strictEqual(
         headers.lines.findIndex(line => line.key === 'y-test'),
         3
     );
-    test.equal(headers.build().toString(), generatedHeaderStr);
-    test.done();
-};
+    t.assert.strictEqual(headers.build().toString(), generatedHeaderStr);
+    done();
+});
 
-module.exports['Remove header'] = test => {
+test('Remove header', (t, done) => {
     let origHeaderStr = 'Subject: test\nMIME-Version: 1.0\nMessage-ID: <abc@def>\n\n';
     let generatedHeaderStr = 'Subject: test\r\nMessage-ID: <abc@def>\r\n\r\n';
     let headers = new Headers(Buffer.from(origHeaderStr));
     headers.remove('MIME-Version');
-    test.equal(headers.build().toString(), generatedHeaderStr);
-    test.done();
-};
+    t.assert.strictEqual(headers.build().toString(), generatedHeaderStr);
+    done();
+});
 
-module.exports['Replace header'] = test => {
+test('Replace header', (t, done) => {
     let origHeaderStr = 'Subject: test\nMIME-Version: 1.0\nMessage-ID: <abc@def>\n\n';
     let generatedHeaderStr = 'Subject: test\r\nMIME-Version: New value\r\nMessage-ID: <abc@def>\r\n\r\n';
     let headers = new Headers(Buffer.from(origHeaderStr));
     headers.update('MIME-Version', 'New value');
-    test.equal(headers.build().toString(), generatedHeaderStr);
-    test.done();
-};
+    t.assert.strictEqual(headers.build().toString(), generatedHeaderStr);
+    done();
+});
 
-module.exports['Replace header at relative key index'] = test => {
+test('Replace header at relative key index', (t, done) => {
     let origHeaderStr = 'Subject: test\nMIME-Version: 1.0\nMIME-Version: 2.0\nMIME-Version: 3.0\nMessage-ID: <abc@def>\n\n';
     let generatedHeaderStr = 'Subject: test\r\nMIME-Version: 1.0\r\nMIME-Version: New value\r\nMIME-Version: 3.0\r\nMessage-ID: <abc@def>\r\n\r\n';
     let headers = new Headers(Buffer.from(origHeaderStr));
     headers.update('MIME-Version', 'New value', 1);
-    test.equal(headers.build().toString(), generatedHeaderStr);
-    test.done();
-};
+    t.assert.strictEqual(headers.build().toString(), generatedHeaderStr);
+    done();
+});
 
-module.exports['Preserve SMTPUTF8 mailbox local part'] = test => {
+test('Preserve SMTPUTF8 mailbox local part', (t, done) => {
     let value = 'öäöä@wildduck.xn--4caaa.test';
     let headers = new Headers();
     headers.add('From', value);
 
-    test.equal(headers.get('from')[0], `From: ${value}`);
-    test.equal(headers.getDecoded('from')[0].value, value);
-    test.equal(headers.build().toString(), `From: ${value}\r\n\r\n`);
-    test.done();
-};
+    t.assert.strictEqual(headers.get('from')[0], `From: ${value}`);
+    t.assert.strictEqual(headers.getDecoded('from')[0].value, value);
+    t.assert.strictEqual(headers.build().toString(), `From: ${value}\r\n\r\n`);
+    done();
+});
 
-module.exports['Preserve SMTPUTF8 mailbox with UTF-8 domain'] = test => {
+test('Preserve SMTPUTF8 mailbox with UTF-8 domain', (t, done) => {
     let value = 'öäöä@wildduck.äää.test';
     let headers = new Headers();
     headers.add('From', value);
 
-    test.equal(headers.get('from')[0], `From: ${value}`);
-    test.equal(headers.getDecoded('from')[0].value, value);
-    test.equal(headers.build().toString(), `From: ${value}\r\n\r\n`);
-    test.done();
-};
+    t.assert.strictEqual(headers.get('from')[0], `From: ${value}`);
+    t.assert.strictEqual(headers.getDecoded('from')[0].value, value);
+    t.assert.strictEqual(headers.build().toString(), `From: ${value}\r\n\r\n`);
+    done();
+});
 
-module.exports['Preserve UTF-8 display name and mailbox'] = test => {
+test('Preserve UTF-8 display name and mailbox', (t, done) => {
     let value = '"Jöhn Dœ" <öäöä@wildduck.xn--4caaa.test>';
     let headers = new Headers();
     headers.add('From', value);
 
-    test.equal(headers.get('from')[0], `From: ${value}`);
-    test.equal(headers.getDecoded('from')[0].value, value);
-    test.equal(headers.build().toString(), `From: ${value}\r\n\r\n`);
-    test.done();
-};
+    t.assert.strictEqual(headers.get('from')[0], `From: ${value}`);
+    t.assert.strictEqual(headers.getDecoded('from')[0].value, value);
+    t.assert.strictEqual(headers.build().toString(), `From: ${value}\r\n\r\n`);
+    done();
+});
 
-module.exports['Preserve ASCII address round-trip'] = test => {
+test('Preserve ASCII address round-trip', (t, done) => {
     let value = 'ascii@example.com';
     let headers = new Headers();
     headers.add('From', value);
 
-    test.equal(headers.get('from')[0], `From: ${value}`);
-    test.equal(headers.getDecoded('from')[0].value, value);
-    test.equal(headers.build().toString(), `From: ${value}\r\n\r\n`);
-    test.done();
-};
+    t.assert.strictEqual(headers.get('from')[0], `From: ${value}`);
+    t.assert.strictEqual(headers.getDecoded('from')[0].value, value);
+    t.assert.strictEqual(headers.build().toString(), `From: ${value}\r\n\r\n`);
+    done();
+});
 
-module.exports['Strip CR and LF from added header values'] = test => {
+test('Strip CR and LF from added header values', (t, done) => {
     let headers = new Headers();
     headers.add('X-Test', 'value\rInjected: yes\r\nX-Also: 1\nmore');
-    test.equal(headers.build().toString(), 'X-Test: valueInjected: yesX-Also: 1more\r\n\r\n');
-    test.done();
-};
+    t.assert.strictEqual(headers.build().toString(), 'X-Test: valueInjected: yesX-Also: 1more\r\n\r\n');
+    done();
+});
 
-module.exports['Drop lone CR from modified headers'] = test => {
+test('Drop lone CR from modified headers', (t, done) => {
     // a bare <CR> is not a line break when parsing, so building one into a real line
     // ending would emit a header that was never reported as parsed
     let headers = new Headers(Buffer.from('From: victim@example.com\r\nSubject: hello\rBcc: attacker@example.com\r\nTo: user@example.com\r\n\r\n'));
     headers.add('X-Scan', 'clean');
 
     let built = headers.build().toString();
-    test.equal(built, 'X-Scan: clean\r\nFrom: victim@example.com\r\nSubject: helloBcc: attacker@example.com\r\nTo: user@example.com\r\n\r\n');
-    test.deepEqual(keysOf(built).sort(), ['from', 'subject', 'to', 'x-scan']);
-    test.done();
-};
+    t.assert.strictEqual(built, 'X-Scan: clean\r\nFrom: victim@example.com\r\nSubject: helloBcc: attacker@example.com\r\nTo: user@example.com\r\n\r\n');
+    t.assert.deepStrictEqual(keysOf(built).sort(), ['from', 'subject', 'to', 'x-scan']);
+    done();
+});
 
-module.exports['Drop lone CR that precedes whitespace'] = test => {
+test('Drop lone CR that precedes whitespace', (t, done) => {
     // a <CR><SP> at the start of a wire line parses as its own header, so promoting the
     // <CR> to a fold would put a blank line mid block and demote every later header
     // (Subject, DKIM-Signature) into the message body
@@ -213,35 +215,35 @@ module.exports['Drop lone CR that precedes whitespace'] = test => {
 
     let built = headers.build().toString('binary');
     // what is left of the line folds into the header above it, so it adds no header
-    test.equal(built, 'X-Scan: clean\r\nFrom: victim@example.com\r\n X: y\r\nSubject: quarterly report\r\nDKIM-Signature: v=1\r\n\r\n');
+    t.assert.strictEqual(built, 'X-Scan: clean\r\nFrom: victim@example.com\r\n X: y\r\nSubject: quarterly report\r\nDKIM-Signature: v=1\r\n\r\n');
     // the header block ends exactly once, at the end
-    assertBlockNotClosedEarly(test, built);
-    test.deepEqual(keysOf(built), ['x-scan', 'from', 'subject', 'dkim-signature']);
-    test.done();
-};
+    assertBlockNotClosedEarly(t, built);
+    t.assert.deepStrictEqual(keysOf(built), ['x-scan', 'from', 'subject', 'dkim-signature']);
+    done();
+});
 
-module.exports['Keep an indented first header line folded'] = test => {
+test('Keep an indented first header line folded', (t, done) => {
     // ' Bcc: ...' is a continuation, not a header. Making it a header of its own would
     // synthesize an attacker chosen recipient out of input no other parser reads that way
     let headers = new Headers(Buffer.from(' Bcc: attacker@example.com\r\nFrom: victim@example.com\r\nSubject: s\r\n\r\n', 'binary'));
     headers.add('X-Scan', 'clean');
 
     let keys = keysOf(headers.build().toString('binary'));
-    test.deepEqual(keys, ['x-scan', 'from', 'subject']);
-    test.done();
-};
+    t.assert.deepStrictEqual(keys, ['x-scan', 'from', 'subject']);
+    done();
+});
 
-module.exports['Keep a whitespace only header line from ending the block'] = test => {
+test('Keep a whitespace only header line from ending the block', (t, done) => {
     let headers = new Headers(Buffer.from('  \r\nSubject: secret\r\nTo: user@example.com\r\n\r\n', 'binary'));
     headers.add('X-Scan', 'clean');
 
     let built = headers.build().toString('binary');
-    assertBlockNotClosedEarly(test, built);
-    test.deepEqual(keysOf(built), ['x-scan', 'subject', 'to']);
-    test.done();
-};
+    assertBlockNotClosedEarly(t, built);
+    t.assert.deepStrictEqual(keysOf(built), ['x-scan', 'subject', 'to']);
+    done();
+});
 
-module.exports['Drop a leading fold from an added header line'] = test => {
+test('Drop a leading fold from an added header line', (t, done) => {
     // build() joins lines with the line ending, so a line that starts with one would
     // close the header block
     let headers = new Headers();
@@ -249,66 +251,66 @@ module.exports['Drop a leading fold from an added header line'] = test => {
     headers.add('Subject', 'hi');
 
     let built = headers.build().toString();
-    assertBlockNotClosedEarly(test, built);
+    assertBlockNotClosedEarly(t, built);
     // one insertion may never produce more than one header line
-    test.equal(new Headers(Buffer.from(built)).getList().length, 2);
-    test.done();
-};
+    t.assert.strictEqual(new Headers(Buffer.from(built)).getList().length, 2);
+    done();
+});
 
-module.exports['Keep a trailing CR from ending the header block'] = test => {
+test('Keep a trailing CR from ending the header block', (t, done) => {
     let headers = new Headers(Buffer.from('From: a@example.com\r\nSubject: hi\r\r\nTo: user@example.com\r\nX-Important: yes\r\n\r\n'));
     headers.add('Received', 'from localhost');
 
     let keys = keysOf(headers.build().toString()).sort();
     // an expanded <CR> would close the header block and demote the rest into the body
-    test.deepEqual(keys, ['from', 'received', 'subject', 'to', 'x-important']);
-    test.done();
-};
+    t.assert.deepStrictEqual(keys, ['from', 'received', 'subject', 'to', 'x-important']);
+    done();
+});
 
-module.exports['Strip CR and LF from added header keys'] = test => {
+test('Strip CR and LF from added header keys', (t, done) => {
     let headers = new Headers();
     headers.add('X-Test\r\nBcc: attacker@example.com', 'ok');
 
-    test.equal(headers.build().toString(), 'X-TestBcc: attacker@example.com: ok\r\n\r\n');
-    test.ok(!headers.hasHeader('bcc'));
-    test.done();
-};
+    t.assert.strictEqual(headers.build().toString(), 'X-TestBcc: attacker@example.com: ok\r\n\r\n');
+    t.assert.ok(!headers.hasHeader('bcc'));
+    done();
+});
 
-module.exports['Strip injected header lines from addFormatted'] = test => {
+test('Strip injected header lines from addFormatted', (t, done) => {
     let headers = new Headers();
     headers.addFormatted('X-Test', 'X-Test: value\r\nBcc: attacker@example.com');
 
     let built = headers.build().toString();
-    test.equal(built, 'X-Test: valueBcc: attacker@example.com\r\n\r\n');
-    test.deepEqual(keysOf(built), ['x-test']);
-    test.done();
-};
+    t.assert.strictEqual(built, 'X-Test: valueBcc: attacker@example.com\r\n\r\n');
+    t.assert.deepStrictEqual(keysOf(built), ['x-test']);
+    done();
+});
 
-module.exports['Keep folded header lines when rebuilding'] = test => {
+test('Keep folded header lines when rebuilding', (t, done) => {
     let headers = new Headers(Buffer.from('Subject: a very long subject\r\n\tthat is folded\r\nTo: user@example.com\r\n\r\n'));
     headers.add('X-Added', 'value');
 
     // folding is a line break followed by whitespace, it has to survive
-    test.equal(headers.build().toString(), 'X-Added: value\r\nSubject: a very long subject\r\n\tthat is folded\r\nTo: user@example.com\r\n\r\n');
-    test.equal(headers.build('\n').toString(), 'X-Added: value\nSubject: a very long subject\n\tthat is folded\nTo: user@example.com\n\n');
-    test.done();
-};
+    t.assert.strictEqual(headers.build().toString(), 'X-Added: value\r\nSubject: a very long subject\r\n\tthat is folded\r\nTo: user@example.com\r\n\r\n');
+    t.assert.strictEqual(headers.build('\n').toString(), 'X-Added: value\nSubject: a very long subject\n\tthat is folded\nTo: user@example.com\n\n');
+    done();
+});
 
-module.exports['Use lineEnd literally when rebuilding'] = test => {
+test('Use lineEnd literally when rebuilding', (t, done) => {
     let headers = new Headers(Buffer.from('Subject: a very long subject\r\n\tthat is folded\r\nX: y\r\n\r\n'));
 
     // lineEnd is caller supplied, so $&, $` and $' may not act as replacement patterns
-    test.equal(headers.build("$'").toString(), "Subject: a very long subject$'\tthat is folded$'X: y$'$'");
-    test.done();
-};
+    t.assert.strictEqual(headers.build("$'").toString(), "Subject: a very long subject$'\tthat is folded$'X: y$'$'");
+    done();
+});
 
-module.exports['Keep unmodified headers byte exact'] = test => {
+test('Keep unmodified headers byte exact', (t, done) => {
     let raw = 'Subject: test\rinjected\r\nTo: user@example.com\r\n\r\n';
-    test.equal(new Headers(Buffer.from(raw, 'binary')).build().toString('binary'), raw);
-    test.done();
-};
+    t.assert.strictEqual(new Headers(Buffer.from(raw, 'binary')).build().toString('binary'), raw);
+    done();
+});
 
-module.exports['Strip injected header lines from supplied header objects'] = test => {
+test('Strip injected header lines from supplied header objects', (t, done) => {
     // an array of lines skips _parseHeaders entirely, so build() is the only place
     // that can stop a line supplied by the caller from becoming two headers
     let headers = new Headers([
@@ -317,90 +319,90 @@ module.exports['Strip injected header lines from supplied header objects'] = tes
     ]);
 
     let built = headers.build().toString();
-    test.equal(built, 'X-Test: valueBcc: attacker@example.com\r\nSubject: hi\r\n\r\n');
-    test.deepEqual(keysOf(built), ['x-test', 'subject']);
-    test.done();
-};
+    t.assert.strictEqual(built, 'X-Test: valueBcc: attacker@example.com\r\nSubject: hi\r\n\r\n');
+    t.assert.deepStrictEqual(keysOf(built), ['x-test', 'subject']);
+    done();
+});
 
-module.exports['Strip injected header lines from a Buffer header line'] = test => {
+test('Strip injected header lines from a Buffer header line', (t, done) => {
     let headers = new Headers();
     headers.addFormatted('X-Test', Buffer.from('X-Test: value\r\nBcc: attacker@example.com'));
 
     let built = headers.build().toString();
-    test.equal(built, 'X-Test: valueBcc: attacker@example.com\r\n\r\n');
-    test.ok(!headers.hasHeader('bcc'));
-    test.done();
-};
+    t.assert.strictEqual(built, 'X-Test: valueBcc: attacker@example.com\r\n\r\n');
+    t.assert.ok(!headers.hasHeader('bcc'));
+    done();
+});
 
-module.exports['Keep a large folded header block byte exact and parse it'] = test => {
+test('Keep a large folded header block byte exact and parse it', (t, done) => {
     let raw = 'From sender@example.com Mon Jan  1 00:00:00 2024\r\nSubject: first\r\n\tsecond\r\n third\r\nX-A: a\r\nX-B: b\r\n  folded\r\n\r\n';
     let headers = new Headers(Buffer.from(raw, 'binary'));
-    test.deepEqual(headers.getList(), [
+    t.assert.deepStrictEqual(headers.getList(), [
         { key: 'subject', line: 'Subject: first\r\n\tsecond\r\n third' },
         { key: 'x-a', line: 'X-A: a' },
         { key: 'x-b', line: 'X-B: b\r\n  folded' }
     ]);
-    test.equal(headers.mbox, 'From sender@example.com Mon Jan  1 00:00:00 2024');
-    test.equal(headers.build().toString('binary'), raw);
+    t.assert.strictEqual(headers.mbox, 'From sender@example.com Mon Jan  1 00:00:00 2024');
+    t.assert.strictEqual(headers.build().toString('binary'), raw);
 
     // rebuilding from the parsed lines keeps every fold
     headers.remove('X-A');
-    test.equal(headers.build().toString('binary'), raw.replace('X-A: a\r\n', ''));
-    test.done();
-};
+    t.assert.strictEqual(headers.build().toString('binary'), raw.replace('X-A: a\r\n', ''));
+    done();
+});
 
-module.exports['Unfold header continuation lines in linear time'] = test => {
+test('Unfold header continuation lines in linear time', (t, done) => {
     let run = pairs => {
         let raw = Buffer.from('X-A: a\r\n b\r\n'.repeat(pairs) + '\r\n');
         let headers = new Headers(raw);
-        test.equal(headers.getList().length, pairs);
-        test.ok(headers.build().equals(raw));
+        t.assert.strictEqual(headers.getList().length, pairs);
+        t.assert.ok(headers.build().equals(raw));
     };
     // unfolding with splice took 0.1 s -> 1.2 s here
-    assertLinear(test, run, 10 * 1000)
-        .catch(err => test.ifError(err))
-        .then(() => test.done());
-};
+    assertLinear(t, run, 10 * 1000)
+        .catch(err => t.assert.ifError(err))
+        .then(() => done());
+});
 
-module.exports['Strip trailing line breaks in linear time'] = test => {
+test('Strip trailing line breaks in linear time', (t, done) => {
     let run = count => {
         // a header line made of carriage returns, followed by more headers. A lone CR
         // is not a line break for the parser, so the line is kept as it is
         let line = 'X-A: ' + '\r'.repeat(count);
         let raw = Buffer.from(line + '\r\nX-B: b\r\n\r\n', 'binary');
         let headers = new Headers(raw);
-        test.deepEqual(headers.getList(), [
+        t.assert.deepStrictEqual(headers.getList(), [
             { key: 'x-a', line },
             { key: 'x-b', line: 'X-B: b' }
         ]);
-        test.ok(headers.build().equals(raw));
+        t.assert.ok(headers.build().equals(raw));
     };
     // the regex that stripped the trailing line breaks took 0.6 s -> 10 s here
-    assertLinear(test, run, 40 * 1000)
-        .catch(err => test.ifError(err))
-        .then(() => test.done());
-};
+    assertLinear(t, run, 40 * 1000)
+        .catch(err => t.assert.ifError(err))
+        .then(() => done());
+});
 
-module.exports['Find the key of a header line without a colon in linear time'] = test => {
+test('Find the key of a header line without a colon in linear time', (t, done) => {
     let run = lines => {
         // a line with no colon keeps looking for its key in every continuation line
         let raw = Buffer.from('Subject: a\r\nX\r\n' + ' y\r\n'.repeat(lines) + '\r\n');
         let headers = new Headers(raw);
         let list = headers.getList();
-        test.equal(list.length, 2);
-        test.equal(list[1].key, '');
-        test.ok(headers.build().equals(raw));
+        t.assert.strictEqual(list.length, 2);
+        t.assert.strictEqual(list[1].key, '');
+        t.assert.ok(headers.build().equals(raw));
     };
     // searching the whole accumulated line for every continuation took 0.4 s -> 7 s here
-    assertLinear(test, run, 50 * 1000)
-        .catch(err => test.ifError(err))
+    assertLinear(t, run, 50 * 1000)
+        .catch(err => t.assert.ifError(err))
         .then(() => {
             // the key may still come from a later continuation line
             let headers = new Headers(Buffer.from('X\r\n y\r\n Z-Key: v\r\n more\r\nTo: b\r\n\r\n'));
-            test.deepEqual(headers.getList(), [
+            t.assert.deepStrictEqual(headers.getList(), [
                 { key: 'x\r\n y\r\n z-key', line: 'X\r\n y\r\n Z-Key: v\r\n more' },
                 { key: 'to', line: 'To: b' }
             ]);
-            test.done();
+            done();
         });
-};
+});
