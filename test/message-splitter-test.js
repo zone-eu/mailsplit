@@ -1463,3 +1463,16 @@ test('A boundary that opens with a parenthesis delimits the parts', (t, done) =>
 
     testStructure(t, done, message, ['multipart/mixed', 'text/html', 'application/octet-stream']);
 });
+
+test('A delimiter line may end in a run of carriage returns', (t, done) => {
+    // the artifact of a second CR to CRLF conversion, which postal-mime reads as the line
+    // ending as well, so the parts behind such lines are found where it finds them
+    let message =
+        'Content-Type: multipart/mixed; boundary=abc\r\n\r\n' +
+        '--abc\r\r\nContent-Type: text/html\r\n\r\n<p>html</p>\r\n' +
+        '--abc \r\r\r\nContent-Type: application/octet-stream; name=x.exe\r\n\r\nMZ\r\n' +
+        '--abc--\r\r\n' +
+        '--abc\r\nContent-Type: text/plain\r\n\r\nepilogue\r\n';
+
+    testStructure(t, done, message, ['multipart/mixed', 'text/html', 'application/octet-stream']);
+});
