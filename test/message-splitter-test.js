@@ -1476,3 +1476,15 @@ test('A delimiter line may end in a run of carriage returns', (t, done) => {
 
     testStructure(t, done, message, ['multipart/mixed', 'text/html', 'application/octet-stream']);
 });
+
+test('What follows a closed quoted boundary is not part of it', (t, done) => {
+    // `boundary="b"c` is the boundary b to Python and postal-mime, so the parts under the
+    // `--b` lines a sender writes for them are found here as well
+    let message =
+        'Content-Type: multipart/mixed; boundary="b"c\r\n\r\n' +
+        '--b\r\nContent-Type: text/html\r\n\r\n<p>html</p>\r\n' +
+        '--b\r\nContent-Type: application/octet-stream; name=x.exe\r\n\r\nMZ\r\n' +
+        '--b--\r\n';
+
+    testStructure(t, done, message, ['multipart/mixed', 'text/html', 'application/octet-stream']);
+});

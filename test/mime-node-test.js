@@ -300,6 +300,8 @@ test('the comments of a MIME header are dropped and the first of a duplicated pa
     t.assert.strictEqual(boundary('Content-Type: (c) multipart/mixed (c); (c) boundary= (c)"b" (c)'), 'b');
     // right behind the "=" a parenthesis is content, as it is for Python and postal-mime
     t.assert.strictEqual(boundary('Content-Type: multipart/mixed; boundary=(c)b'), '(c)b');
+    // what follows a closed quoted string is junk, not part of the boundary
+    t.assert.strictEqual(boundary('Content-Type: multipart/mixed; boundary="b"c (c)'), 'b');
     // a parenthesis that continues a token is content
     t.assert.strictEqual(parseHeader('Content-Disposition: attachment; filename=Invoice(1).pdf').filename, 'Invoice(1).pdf');
     t.assert.strictEqual(parseHeader('Content-Disposition: attachment; filename="a (1).pdf" (c)').filename, 'a (1).pdf');
