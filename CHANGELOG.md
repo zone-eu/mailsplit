@@ -1,5 +1,18 @@
 # Changelog
 
+## [5.4.28](https://github.com/zone-eu/mailsplit/compare/v5.4.27...v5.4.28) (2026-10-22)
+
+
+### Bug Fixes
+
+* accept the whitespace a delimiter line may end in ([123fc9d](https://github.com/zone-eu/mailsplit/commit/123fc9d10b2d047ccaa4f194a44dde842117098c))
+* **deps:** bump libmime to 5.6.2, a parenthesis right behind the equals sign of a boundary is content ([cf8be22](https://github.com/zone-eu/mailsplit/commit/cf8be2281dae6c802920ccacc4823bbd3c41e956))
+* **deps:** bump libmime to 5.6.3, what follows a closed quoted boundary is not part of it ([098ab28](https://github.com/zone-eu/mailsplit/commit/098ab283b34aa101282ca50808ac3a414983b86c))
+* drop the comments of a Content-Type or Content-Disposition and keep the first of a duplicated parameter ([336acb8](https://github.com/zone-eu/mailsplit/commit/336acb8d09c36e5172b0f5af48123b517cefcaa6))
+* flag format=flowed on text/plain parts only ([ea52b15](https://github.com/zone-eu/mailsplit/commit/ea52b1514ac0d09d9d768bf1cd60aea2ff9c21e1))
+* read a boundary that holds a non-ASCII character as none ([a9ba56c](https://github.com/zone-eu/mailsplit/commit/a9ba56c41cf47ed35bbb58ac6486939a47811438))
+* read a run of carriage returns in front of the line feed of a delimiter line as its line ending ([e7d4c7f](https://github.com/zone-eu/mailsplit/commit/e7d4c7fa03ec83751d70bded504e261f11fc3a97))
+
 ## [5.4.27](https://github.com/zone-eu/mailsplit/compare/v5.4.26...v5.4.27) (2026-10-19)
 
 
