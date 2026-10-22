@@ -300,3 +300,23 @@ test('a boundary is ASCII without trailing whitespace', (t, done) => {
 
     done();
 });
+
+test('the comments of a MIME header are dropped and the first of a duplicated parameter wins', (t, done) => {
+    // as Python and postal-mime read them, so the boundary they split by is the one split by here
+    let parse = header => {
+        let node = new MimeNode();
+        node.addHeaderChunk(Buffer.from(header + '\r\n'));
+        node.addHeaderChunk(Buffer.from('\r\n'));
+        node.parseHeaders();
+        return node;
+    };
+
+    t.assert.strictEqual(parse('Content-Type: multipart/mixed; boundary=b (comment)')._boundary.toString(), 'b');
+    t.assert.strictEqual(parse('Content-Type: multipart/mixed; boundary=b; boundary=c')._boundary.toString(), 'b');
+    t.assert.strictEqual(parse('Content-Type: (c) multipart/mixed (c); (c) boundary=(c)"b" (c)')._boundary.toString(), 'b');
+    // a parenthesis that continues a token is content
+    t.assert.strictEqual(parse('Content-Disposition: attachment; filename=Invoice(1).pdf').filename, 'Invoice(1).pdf');
+    t.assert.strictEqual(parse('Content-Disposition: attachment; filename="a (1).pdf" (c)').filename, 'a (1).pdf');
+
+    done();
+});

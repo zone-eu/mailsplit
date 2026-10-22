@@ -1434,3 +1434,27 @@ test('A boundary holding a non-ASCII character delimits no parts', (t, done) => 
 
     splitter.end(message);
 });
+
+test('A boundary followed by a comment delimits the parts', (t, done) => {
+    // Python and postal-mime read `boundary=b (comment)` as the boundary b and find the
+    // html part and the attachment, which stayed hidden here while the comment was part
+    // of the boundary
+    let message =
+        'Content-Type: multipart/mixed; boundary=b (comment)\r\n\r\n' +
+        '--b\r\nContent-Type: text/html\r\n\r\n<p>html</p>\r\n' +
+        '--b\r\nContent-Type: application/octet-stream; name=x.exe\r\n\r\nMZ\r\n' +
+        '--b--\r\n';
+
+    let splitter = new MessageSplitter();
+    let nodes = [];
+    splitter.on('data', data => {
+        if (data.type === 'node') {
+            nodes.push(data.contentType);
+        }
+    });
+    splitter.on('end', () => {
+        t.assert.deepStrictEqual(nodes, ['multipart/mixed', 'text/html', 'application/octet-stream']);
+        done();
+    });
+    splitter.end(message);
+});
