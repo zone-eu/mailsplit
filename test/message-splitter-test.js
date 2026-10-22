@@ -1398,63 +1398,29 @@ test('Close unterminated nested multiparts on an outer boundary', (t, done) => {
 
 test('A boundary holding a non-ASCII character delimits no parts', (t, done) => {
     // A boundary read as latin1 and re-encoded as UTF-8 matched the `--ab\xC3\xA9cd` lines
-    // of the message, so the html part and the attachment under them were split out here
-    // while Python, which matches no line against such a boundary, left them unseen. The
-    // message now has no parts, its body passes through as data, and it still round trips
-    let line = Buffer.from('--abécd');
-    let message = Buffer.concat([
-        Buffer.from('Content-Type: multipart/mixed; boundary="ab'),
-        Buffer.from([0xe9]),
-        Buffer.from('cd"\r\n\r\n'),
-        line,
-        Buffer.from('\r\nContent-Type: text/html\r\n\r\n<script>alert(1)</script>\r\n'),
-        line,
-        Buffer.from('\r\nContent-Type: application/octet-stream; name=x.exe\r\n\r\nMZ\r\n'),
-        line,
-        Buffer.from('--\r\n')
-    ]);
+    // and split out the html part and the attachment under them, which Python, matching no
+    // line against such a boundary, leaves unseen. The body now passes through as data
+    let message =
+        'Content-Type: multipart/mixed; boundary="ab\xe9cd"\r\n\r\n' +
+        '--ab\xc3\xa9cd\r\nContent-Type: text/html\r\n\r\n<script>alert(1)</script>\r\n' +
+        '--ab\xc3\xa9cd\r\nContent-Type: application/octet-stream; name=x.exe\r\n\r\nMZ\r\n' +
+        '--ab\xc3\xa9cd--\r\n';
 
-    let splitter = new MessageSplitter();
-    let joiner = new MessageJoiner();
-    let types = [];
-    let output = [];
-
-    splitter.on('data', data => {
-        types.push(data.type);
-        joiner.write(data);
-    });
-    splitter.on('end', () => joiner.end());
-    joiner.on('data', chunk => output.push(chunk));
-    joiner.on('end', () => {
-        t.assert.strictEqual(types.filter(type => type === 'node').length, 1);
-        t.assert.ok(!types.includes('body'));
-        t.assert.deepStrictEqual(Buffer.concat(output), message);
+    testStructure(t, done, message, ['multipart/mixed'], 1, single => {
+        // no body chunk belongs to the node, its lines are data
+        t.assert.strictEqual(single.content[0].value, '');
         done();
     });
-
-    splitter.end(message);
 });
 
 test('A boundary followed by a comment delimits the parts', (t, done) => {
     // Python and postal-mime read `boundary=b (comment)` as the boundary b and find the
-    // html part and the attachment, which stayed hidden here while the comment was part
-    // of the boundary
+    // parts, which stayed hidden here while the comment was part of the boundary
     let message =
         'Content-Type: multipart/mixed; boundary=b (comment)\r\n\r\n' +
         '--b\r\nContent-Type: text/html\r\n\r\n<p>html</p>\r\n' +
         '--b\r\nContent-Type: application/octet-stream; name=x.exe\r\n\r\nMZ\r\n' +
         '--b--\r\n';
 
-    let splitter = new MessageSplitter();
-    let nodes = [];
-    splitter.on('data', data => {
-        if (data.type === 'node') {
-            nodes.push(data.contentType);
-        }
-    });
-    splitter.on('end', () => {
-        t.assert.deepStrictEqual(nodes, ['multipart/mixed', 'text/html', 'application/octet-stream']);
-        done();
-    });
-    splitter.end(message);
+    testStructure(t, done, message, ['multipart/mixed', 'text/html', 'application/octet-stream']);
 });

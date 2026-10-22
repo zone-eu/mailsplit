@@ -257,23 +257,21 @@ test('Do not decode an RFC 2231 filename a second time', (t, done) => {
     done();
 });
 
-test('format=flowed applies to text/plain only', (t, done) => {
-    // RFC 3676 defines format=flowed for text/plain, and a browser never unfolds an html
-    // part, so `<scri \r\npt>` is no tag to it or to Python. Flagged here, a consumer
-    // unfolding the part under delsp=yes joined it into one
-    let parse = contentType => {
-        let node = new MimeNode();
-        node.addHeaderChunk(Buffer.from(`Content-Type: ${contentType}; format=flowed; delsp=yes\r\n`));
-        node.addHeaderChunk(Buffer.from('\r\n'));
-        node.parseHeaders();
-        return node;
-    };
+// a node parsed from one header block, given as a binary string
+const parseHeader = header => {
+    let node = new MimeNode();
+    node.addHeaderChunk(Buffer.from(header + '\r\n\r\n', 'binary'));
+    node.parseHeaders();
+    return node;
+};
 
-    let plain = parse('text/plain');
+test('format=flowed applies to text/plain only', (t, done) => {
+    // RFC 3676 defines it for text/plain, and a browser never unfolds an html part
+    let plain = parseHeader('Content-Type: text/plain; format=flowed; delsp=yes');
     t.assert.strictEqual(plain.flowed, true);
     t.assert.strictEqual(plain.delSp, true);
 
-    let html = parse('text/html');
+    let html = parseHeader('Content-Type: text/html; format=flowed; delsp=yes');
     t.assert.strictEqual(html.flowed, false);
     t.assert.strictEqual(html.delSp, false);
 
@@ -281,42 +279,28 @@ test('format=flowed applies to text/plain only', (t, done) => {
 });
 
 test('a boundary is ASCII without trailing whitespace', (t, done) => {
-    // RFC 2046 5.1.1 bchars. Python matches no line against a boundary holding a
-    // non-ASCII character, and strips the trailing whitespace of one
-    let parse = boundary => {
-        let node = new MimeNode();
-        node.addHeaderChunk(Buffer.concat([Buffer.from('Content-Type: multipart/mixed; boundary="'), boundary, Buffer.from('"\r\n')]));
-        node.addHeaderChunk(Buffer.from('\r\n'));
-        node.parseHeaders();
-        return node._boundary;
-    };
+    let boundary = value => parseHeader(`Content-Type: multipart/mixed; boundary="${value}"`)._boundary;
 
-    t.assert.strictEqual(parse(Buffer.from('abc  ')).toString(), 'abc');
-    t.assert.strictEqual(parse(Buffer.from("b#$@'()+_,-./:=?")).toString(), "b#$@'()+_,-./:=?");
+    t.assert.strictEqual(boundary('abc  ').toString(), 'abc');
+    t.assert.strictEqual(boundary("b#$@'()+_,-./:=?").toString(), "b#$@'()+_,-./:=?");
     // a latin1 byte, and the same character in UTF-8
-    t.assert.strictEqual(parse(Buffer.from([0x61, 0x62, 0xe9, 0x63, 0x64])), false);
-    t.assert.strictEqual(parse(Buffer.from('abécd')), false);
-    t.assert.strictEqual(parse(Buffer.from('   ')), false);
+    t.assert.strictEqual(boundary('ab\xe9cd'), false);
+    t.assert.strictEqual(boundary('ab\xc3\xa9cd'), false);
+    t.assert.strictEqual(boundary('   '), false);
 
     done();
 });
 
 test('the comments of a MIME header are dropped and the first of a duplicated parameter wins', (t, done) => {
     // as Python and postal-mime read them, so the boundary they split by is the one split by here
-    let parse = header => {
-        let node = new MimeNode();
-        node.addHeaderChunk(Buffer.from(header + '\r\n'));
-        node.addHeaderChunk(Buffer.from('\r\n'));
-        node.parseHeaders();
-        return node;
-    };
+    let boundary = header => parseHeader(header)._boundary.toString();
 
-    t.assert.strictEqual(parse('Content-Type: multipart/mixed; boundary=b (comment)')._boundary.toString(), 'b');
-    t.assert.strictEqual(parse('Content-Type: multipart/mixed; boundary=b; boundary=c')._boundary.toString(), 'b');
-    t.assert.strictEqual(parse('Content-Type: (c) multipart/mixed (c); (c) boundary=(c)"b" (c)')._boundary.toString(), 'b');
+    t.assert.strictEqual(boundary('Content-Type: multipart/mixed; boundary=b (comment)'), 'b');
+    t.assert.strictEqual(boundary('Content-Type: multipart/mixed; boundary=b; boundary=c'), 'b');
+    t.assert.strictEqual(boundary('Content-Type: (c) multipart/mixed (c); (c) boundary=(c)"b" (c)'), 'b');
     // a parenthesis that continues a token is content
-    t.assert.strictEqual(parse('Content-Disposition: attachment; filename=Invoice(1).pdf').filename, 'Invoice(1).pdf');
-    t.assert.strictEqual(parse('Content-Disposition: attachment; filename="a (1).pdf" (c)').filename, 'a (1).pdf');
+    t.assert.strictEqual(parseHeader('Content-Disposition: attachment; filename=Invoice(1).pdf').filename, 'Invoice(1).pdf');
+    t.assert.strictEqual(parseHeader('Content-Disposition: attachment; filename="a (1).pdf" (c)').filename, 'a (1).pdf');
 
     done();
 });
