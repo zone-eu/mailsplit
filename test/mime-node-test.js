@@ -256,3 +256,27 @@ test('Do not decode an RFC 2231 filename a second time', (t, done) => {
     }
     done();
 });
+
+test('format=flowed applies to text/plain only', (t, done) => {
+    // RFC 3676 defines format=flowed for text/plain, and a browser never unfolds an html
+    // part, so `<scri \r\npt>` is no tag to it or to Python. Flagged here, a consumer
+    // unfolding the part under delsp=yes joined it into one
+    let parse = contentType => {
+        let node = new MimeNode();
+        node.addHeaderChunk(Buffer.from(`Content-Type: ${contentType}; format=flowed; delsp=yes\r\n`));
+        node.addHeaderChunk(Buffer.from('\r\n'));
+        node.parseHeaders();
+        return node;
+    };
+
+    let plain = parse('text/plain');
+    t.assert.strictEqual(plain.flowed, true);
+    t.assert.strictEqual(plain.delSp, true);
+
+    let html = parse('text/html');
+    t.assert.strictEqual(html.flowed, false);
+    t.assert.strictEqual(html.delSp, false);
+
+    done();
+});
+

@@ -46,7 +46,7 @@ declare class MimeNode implements MimeNodeShape {
     /** Decoded filename from Content-Disposition or Content-Type parameters, or `false` when absent. */
     filename: string | false;
 
-    /** Whether this node is `text/*` with `format=flowed`. */
+    /** Whether this node is `text/plain` with `format=flowed`. */
     flowed: boolean;
 
     /** Whether flowed text uses `delsp=yes`. */
