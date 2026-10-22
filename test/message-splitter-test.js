@@ -1109,8 +1109,10 @@ test('Fail on oversized single header line while writing', (t, done) => {
     });
 
     // a single header line without a line break, exceeding maxHeadSize. The stream is
-    // never ended, so this can only be caught while the data is written, not on flush
-    splitter.write('Subject: ' + 'h'.repeat(500));
+    // never ended, so this can only be caught while the data is written, not on flush.
+    // A line short enough to still turn out to be a delimiter line, with the trailing
+    // whitespace one may carry, is kept pending first, so the line has to outgrow that
+    splitter.write('Subject: ' + 'h'.repeat(2000));
 });
 
 test('Accept a header block closed by a boundary at the size limit', (t, done) => {
@@ -1423,4 +1425,28 @@ test('A boundary followed by a comment delimits the parts', (t, done) => {
         '--b--\r\n';
 
     testStructure(t, done, message, ['multipart/mixed', 'text/html', 'application/octet-stream']);
+});
+
+test('A delimiter line may end in whitespace', (t, done) => {
+    // RFC 2046 5.1.1, and Python and postal-mime split by such lines. The boundary value
+    // loses its trailing whitespace, so a line written with the space still has to match
+    let message =
+        'Content-Type: multipart/mixed; boundary="abc "\r\n\r\n' +
+        '--abc \r\nContent-Type: text/html\r\n\r\n<p>html</p>\r\n' +
+        '--abc\t \r\nContent-Type: application/octet-stream; name=x.exe\r\n\r\nMZ\r\n' +
+        '--abc-- \r\n';
+
+    testStructure(t, done, message, ['multipart/mixed', 'text/html', 'application/octet-stream']);
+});
+
+test('A delimiter line may not end in anything but whitespace', (t, done) => {
+    let message =
+        'Content-Type: multipart/mixed; boundary=abc\r\n\r\n' +
+        '--abc x\r\nContent-Type: text/html\r\n\r\n<p>html</p>\r\n' +
+        '--abc -\r\n' +
+        '--abc-\r\n' +
+        '--abc--x\r\n' +
+        '--abc--\r\n';
+
+    testStructure(t, done, message, ['multipart/mixed']);
 });
