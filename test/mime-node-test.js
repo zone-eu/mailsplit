@@ -308,3 +308,21 @@ test('the comments of a MIME header are dropped and the first of a duplicated pa
 
     done();
 });
+
+test('an RFC 2231 parameter is told apart by what libmime decoded, not by a second scan', (t, done) => {
+    // libmime decodes the continuation while parsing, so the result must not go through
+    // decodeWords again: once decoded, a%3D%3Futf-8%3FQ%3F%3D2Eexe%3F%3D is the name
+    // a=?utf-8?Q?=2Eexe?= that Python and postal-mime show, twice decoded it is a.exe. A
+    // second scan of the raw header for the name read `(c)filename*=` as `(c)filename`
+    // once the comment was dropped from the real parameter, and decoded it again
+    let encoded = "utf-8''a%3D%3Futf-8%3FQ%3F%3D2Eexe%3F%3D";
+    let once = 'a=?utf-8?Q?=2Eexe?=';
+    t.assert.strictEqual(parseHeader(`Content-Disposition: attachment; filename*=${encoded}`).filename, once);
+    t.assert.strictEqual(parseHeader(`Content-Disposition: attachment; (c)filename*=${encoded}`).filename, once);
+    t.assert.strictEqual(parseHeader(`Content-Disposition: attachment; filename*(c)=${encoded}`).filename, once);
+    t.assert.strictEqual(parseHeader(`Content-Disposition: attachment; (c;c) filename*0*=${encoded}`).filename, once);
+    t.assert.strictEqual(parseHeader(`Content-Type: application/octet-stream; (c)name*=${encoded}`).filename, once);
+    // a plain parameter holding an encoded word is still decoded once
+    t.assert.strictEqual(parseHeader('Content-Disposition: attachment; (c)filename="=?utf-8?Q?a=2Etxt?="').filename, 'a.txt');
+    done();
+});
