@@ -280,3 +280,23 @@ test('format=flowed applies to text/plain only', (t, done) => {
     done();
 });
 
+test('a boundary is ASCII without trailing whitespace', (t, done) => {
+    // RFC 2046 5.1.1 bchars. Python matches no line against a boundary holding a
+    // non-ASCII character, and strips the trailing whitespace of one
+    let parse = boundary => {
+        let node = new MimeNode();
+        node.addHeaderChunk(Buffer.concat([Buffer.from('Content-Type: multipart/mixed; boundary="'), boundary, Buffer.from('"\r\n')]));
+        node.addHeaderChunk(Buffer.from('\r\n'));
+        node.parseHeaders();
+        return node._boundary;
+    };
+
+    t.assert.strictEqual(parse(Buffer.from('abc  ')).toString(), 'abc');
+    t.assert.strictEqual(parse(Buffer.from("b#$@'()+_,-./:=?")).toString(), "b#$@'()+_,-./:=?");
+    // a latin1 byte, and the same character in UTF-8
+    t.assert.strictEqual(parse(Buffer.from([0x61, 0x62, 0xe9, 0x63, 0x64])), false);
+    t.assert.strictEqual(parse(Buffer.from('abécd')), false);
+    t.assert.strictEqual(parse(Buffer.from('   ')), false);
+
+    done();
+});
