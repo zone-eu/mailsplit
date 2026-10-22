@@ -1450,3 +1450,16 @@ test('A delimiter line may not end in anything but whitespace', (t, done) => {
 
     testStructure(t, done, message, ['multipart/mixed']);
 });
+
+test('A boundary that opens with a parenthesis delimits the parts', (t, done) => {
+    // `boundary=(c)b` is the boundary `(c)b` to Python and postal-mime, so the `--(c)b`
+    // lines a sender writes for them delimit the parts here as well, instead of being
+    // looked for as `--b` and left as data
+    let message =
+        'Content-Type: multipart/mixed; boundary=(c)b\r\n\r\n' +
+        '--(c)b\r\nContent-Type: text/html\r\n\r\n<p>html</p>\r\n' +
+        '--(c)b\r\nContent-Type: application/octet-stream; name=x.exe\r\n\r\nMZ\r\n' +
+        '--(c)b--\r\n';
+
+    testStructure(t, done, message, ['multipart/mixed', 'text/html', 'application/octet-stream']);
+});
