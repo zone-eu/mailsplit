@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.29](https://github.com/zone-eu/mailsplit/compare/v5.4.28...v5.4.29) (2026-10-22)
+
+
+### Bug Fixes
+
+* tell an RFC 2231 parameter apart by what libmime decoded, not by a second scan of the header ([1acb597](https://github.com/zone-eu/mailsplit/commit/1acb597424d1c7c86f5e44a6a3fa3f6635195a2a))
+
 ## [5.4.28](https://github.com/zone-eu/mailsplit/compare/v5.4.27...v5.4.28) (2026-10-22)
 
 
