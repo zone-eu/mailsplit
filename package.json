@@ -34,9 +34,9 @@
         "@types/libqp": "1.1.3",
         "@types/node": "26.6.6",
         "c8": "12.0.0",
-        "eslint": "10.13.0",
+        "eslint": "10.14.0",
         "eslint-config-prettier": "10.1.8",
-        "globals": "17.13.0",
+        "globals": "17.14.0",
         "prettier": "3.9.10",
         "random-message": "1.1.0",
         "typescript": "7.0.2"
