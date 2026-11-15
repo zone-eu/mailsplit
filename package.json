@@ -49,5 +49,10 @@
     "repository": {
         "type": "git",
         "url": "https://github.com/zone-eu/mailsplit.git"
+    },
+    "overrides": {
+        "glob": "14.0.6",
+        "minimatch": "11.0.8",
+        "mkdirp": "0.5.6"
     }
 }
