@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.31](https://github.com/zone-eu/mailsplit/compare/v5.4.30...v5.4.31) (2026-11-15)
+
+
+### Bug Fixes
+
+* update dependencies ([2896a7f](https://github.com/zone-eu/mailsplit/commit/2896a7f45d1dddeab8d9e36d725dea6eab57369e))
+
 ## [5.4.30](https://github.com/zone-eu/mailsplit/compare/v5.4.29...v5.4.30) (2026-11-04)
 
 
